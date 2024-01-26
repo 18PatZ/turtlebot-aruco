@@ -1,0 +1,4 @@
+bool has_marker
+geometry_msgs/Vector3 marker_rotation
+geometry_msgs/Vector3 marker_translation
+sensor_msgs/Image debug_image

@@ -81,36 +81,13 @@ class ArucoDetector:
             print("Calibration issue. Camera and distortion matrix must be provided!")
             exit()
 
-
         # Constant parameters used in Aruco methods
         ARUCO_PARAMETERS = aruco.DetectorParameters()
         ARUCO_DICT = aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)
 
         self.detector = aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMETERS)
 
-        CHARUCOBOARD_ROWCOUNT = 7
-        CHARUCOBOARD_COLCOUNT = 11 
-
-        # Create grid board object we're using in our stream
-        # CHARUCO_BOARD = aruco.CharucoBoard_create(
-        #         squaresX=CHARUCOBOARD_COLCOUNT,
-        #         squaresY=CHARUCOBOARD_ROWCOUNT,
-        #         squareLength=0.04,
-        #         markerLength=0.02,
-        #         dictionary=ARUCO_DICT)
-        self.CHARUCO_BOARD = aruco.CharucoBoard(
-                #squaresX=CHARUCOBOARD_COLCOUNT,
-                #squaresY=CHARUCOBOARD_ROWCOUNT,
-                size=(CHARUCOBOARD_COLCOUNT, CHARUCOBOARD_ROWCOUNT),
-                squareLength=18.83/1000,#0.04,
-                markerLength=(18.83 * 16/20) / 1000,#0.02,
-                dictionary=ARUCO_DICT)
-
-        # Create vectors we'll be using for rotations and translations for postures
-        rvecs, tvecs = None, None
-
-
-        self.markerLength = markerLength = 50.8#(18.83 * 16/20) / 1000#0.05;
+        self.markerLength = markerLength = 54#50.8#(18.83 * 16/20) / 1000#0.05;
         self.objPoints = np.array([
             [-markerLength/2, markerLength/2, 0],
             [markerLength/2, markerLength/2, 0],
@@ -120,6 +97,8 @@ class ArucoDetector:
 
 
     def process(self, QueryImg):
+
+        target = None
         
         # grayscale image
         gray = cv2.cvtColor(QueryImg, cv2.COLOR_BGR2GRAY)
@@ -127,31 +106,25 @@ class ArucoDetector:
         # Detect Aruco markers
         corners, ids, rejectedImgPoints = self.detector.detectMarkers(gray)
     
-        # Refine detected markers
-        # Eliminates markers not part of our board, adds missing markers to the board
-        corners, ids, rejectedImgPoints, recoveredIds = self.detector.refineDetectedMarkers(
-                image = gray,
-                board = self.CHARUCO_BOARD,
-                detectedCorners = corners,
-                detectedIds = ids,
-                rejectedCorners = rejectedImgPoints,
-                cameraMatrix = self.cameraMatrix,
-                distCoeffs = self.distCoeffs)  
+        # # Refine detected markers
+        # # Eliminates markers not part of our board, adds missing markers to the board
+        # corners, ids, rejectedImgPoints, recoveredIds = self.detector.refineDetectedMarkers(
+        #         image = gray,
+        #         board = self.CHARUCO_BOARD,
+        #         detectedCorners = corners,
+        #         detectedIds = ids,
+        #         rejectedCorners = rejectedImgPoints,
+        #         cameraMatrix = self.cameraMatrix,
+        #         distCoeffs = self.distCoeffs)  
 
         if corners is not None and len(corners) > 0:
-
-            print(QueryImg.shape)
-
+           
             # Outline all of the markers detected in our image
             QueryImg = drawArucoMarkers(QueryImg, corners, ids)
             QueryImg = aruco.drawDetectedMarkers(QueryImg, corners, borderColor=(0, 0, 255))
 
             #single_rvecs, single_tvecs = aruco.estimatePoseSingleMarkers(corners, 1, cameraMatrix, distCoeffs)  
-            corner1 = None
-            corner2 = None         
-            cornerA = None
-            target = None
-
+            
             for (corner, id) in zip(corners, ids):
                 retval, rvec, tvec = cv2.solvePnP(
                     objectPoints=self.objPoints, 
@@ -161,131 +134,38 @@ class ArucoDetector:
                 QueryImg = cv2.drawFrameAxes(QueryImg, self.cameraMatrix, self.distCoeffs, rvec, tvec, self.markerLength/2)#0.015)
 
                 data = (corner, rvec, tvec)
-                if id == 24:
-                    corner1 = data
-                elif id == 69:
-                    corner2 = data
-                elif id == 70:
+                if id == 1:
                     target = data
-                elif id == 42:
-                    cornerA = data
-            
-            if corner1 is not None and corner2 is not None and target is not None and cornerA is not None:
-                c1_center = flatten(corner1[2])
-                c2_center = flatten(corner2[2])
-                targ_center = flatten(target[2])
-                cA_center = flatten(cornerA[2])
-                span = c2_center - c1_center
+                    print("RVec:", rvec)
+                    print("TVec:", tvec)
 
-                # print("found", span, np.linalg.norm(span))
-                up = np.array([0, 0, self.markerLength/2])
+        marker_rotation = [float('NaN'), float('NaN'), float('NaN')]
+        marker_translation = [float('NaN'), float('NaN'), float('NaN')]
 
-                projected_to_cam, jacobian = cv2.projectPoints(objectPoints = np.array([
-                    np.array([0, 0, 0]),
-                    up,
-                    # up + targ_center - c1_center,
-                    # up + c2_center - c1_center,
-                    # c2_center - c1_center
-                ]), rvec=corner1[1], tvec=corner1[2], cameraMatrix=self.cameraMatrix, distCoeffs=self.distCoeffs)
+        if target is not None:
+            marker_rotation = flatten(target[1])
+            marker_translation = flatten(target[2])
 
-                projected_to_cam2, _ = cv2.projectPoints(objectPoints = np.array([
-                    up
-                ]), rvec=target[1], tvec=target[2], cameraMatrix=self.cameraMatrix, distCoeffs=self.distCoeffs)
+            stepX = stepY = 10.8
 
-                projected_to_cam3, _ = cv2.projectPoints(objectPoints = np.array([
-                    up,
-                    np.array([0, 0, 0])
-                ]), rvec=corner2[1], tvec=corner2[2], cameraMatrix=self.cameraMatrix, distCoeffs=self.distCoeffs)
-                
-                points = np2list(projected_to_cam)
-                points.extend(np2list(projected_to_cam2))
-                points.extend(np2list(projected_to_cam3))
+            gridSize = 10
 
-                rotationMatrix, _ = cv2.Rodrigues(corner1[1])
+            sizeX = sizeY = gridSize * stepX
 
-                horizontal = cA_center - c1_center
-                inPlane = np.array([np.linalg.norm(horizontal), 0, 0])
-                rotated = rotationMatrix.dot(inPlane)
-                
-                inv_rotation = np.linalg.inv(rotationMatrix)
-                unrotated = inv_rotation.dot(horizontal)
+            for i in range(gridSize+1):
+                x = i * stepX - sizeX/2
+                # draw y line
+                drawProjected(QueryImg, [
+                    [x, -sizeY/2, 0],
+                    [x, sizeY/2, 0],
+                ], rvec, tvec, self.cameraMatrix, self.distCoeffs, (0, 255, 255), 1)
 
-                diagonal_in_plane = inv_rotation.dot(c2_center - c1_center)
-                x_in_plane = np.array([1, 0, 0])
-                y_in_plane = np.array([0, 1, 0])
-                sizeX = diagonal_in_plane.dot(x_in_plane)
-                sizeY = diagonal_in_plane.dot(y_in_plane)
-                gridSize = 5
+                y = i * stepY - sizeY/2
+                # draw x line
+                drawProjected(QueryImg, [
+                    [-sizeX/2, y, 0],
+                    [sizeX/2, y, 0],
+                ], rvec, tvec, self.cameraMatrix, self.distCoeffs, (0, 255, 255), 1)
 
-                print("Diagonal: ", int(np.linalg.norm(span)), "mm")
-                print("Size X: ", abs(int(sizeX)), "mm")
-                print("Size Y: ", abs(int(sizeY)), "mm")
-
-                stepX = sizeX / gridSize
-                stepY = sizeY / gridSize
-
-                gridColor = (255, 255, 0)
-                gridThickness = 3
-
-                rvec = corner1[1]
-                tvec = corner1[2]
-                
-                for i in range(gridSize+1):
-                    x = i * stepX
-                    # draw y line
-                    drawProjected(QueryImg, [
-                        [x, 0, 0],
-                        [x, sizeY, 0],
-                    ], rvec, tvec, self.cameraMatrix, self.distCoeffs, gridColor, gridThickness)
-
-                    y = i * stepY
-                    # draw x line
-                    drawProjected(QueryImg, [
-                        [0, y, 0],
-                        [sizeX, y, 0],
-                    ], rvec, tvec, self.cameraMatrix, self.distCoeffs, gridColor, gridThickness)
-
-
-                # proj4, _ = cv2.projectPoints(objectPoints = np.array([
-                #     np.array([0, 0, 0]),
-                #     unrotated,
-                # ]), rvec=corner1[1], tvec=corner1[2], cameraMatrix=cameraMatrix, distCoeffs=distCoeffs)
-                # cv2.line(QueryImg, np2cvi(proj4[0][0]), np2cvi(proj4[1][0]), (255, 255, 0), 2)
-
-                # print("c1",horizontal, np.linalg.norm(horizontal))
-                # print("c2",rotated, np.linalg.norm(horizontal - rotated))
-
-                for i in range(len(points) - 1):
-                    p1 = points[i]
-                    p2 = points[i+1]
-                    cv2.line(QueryImg, np2cvi(p1), np2cvi(p2), (0, 255, 255), 2)
-
-        # Only try to find CharucoBoard if we found markers
-        if ids is not None and len(ids) > 10:
-
-            # Get charuco corners and ids from detected aruco markers
-            response, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(
-                    markerCorners=corners,
-                    markerIds=ids,
-                    image=gray,
-                    board=self.CHARUCO_BOARD)
-    
-            # Require more than 20 squares
-            if response is not None and response > 20:
-                # Estimate the posture of the charuco board, which is a construction of 3D space based on the 2D video 
-
-                pose, rvec, tvec = aruco.estimatePoseCharucoBoard(
-                        charucoCorners=charuco_corners, 
-                        charucoIds=charuco_ids, 
-                        board=self.CHARUCO_BOARD, 
-                        cameraMatrix=self.cameraMatrix, 
-                        distCoeffs=self.distCoeffs, 
-                        rvec=np.empty(1),
-                        tvec=np.empty(1))
-                if pose:
-                    # Draw the camera posture calculated from the gridboard
-                    #QueryImg = aruco.drawAxis(QueryImg, cameraMatrix, distCoeffs, rvec, tvec, 0.3)
-                    QueryImg = cv2.drawFrameAxes(QueryImg, self.cameraMatrix, self.distCoeffs, rvec, tvec, 0.3)
-            
-        # Display our image
-        return QueryImg
+        has_marker = target is not None
+        return has_marker, marker_rotation, marker_translation, QueryImg
