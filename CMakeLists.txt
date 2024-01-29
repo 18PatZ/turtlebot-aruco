@@ -172,6 +172,7 @@ catkin_install_python(PROGRAMS
   src/turtlebot_aruco/imu_to_yaw.py
   src/turtlebot_aruco/pid_to_cmdvel.py
   src/turtlebot_aruco/razor_to_yaw.py
+  src/turtlebot_aruco/control.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

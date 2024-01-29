@@ -17,10 +17,6 @@ import numpy as np
 from turtlebot_aruco.turtle_aruco import ArucoDetector
 
 
-
-# Print "Hello ROS!" to the Terminal and to a ROS Log file located in ~/.ros/log/loghash/*.log
-rospy.loginfo("Hello ROS!")
-
 # Initialize the CvBridge class
 bridge = CvBridge()
 
@@ -42,17 +38,30 @@ R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 P: [680.811279296875, 0.0, 551.4961547851562, 0.0, 0.0, 680.811279296875, 308.56463623046875, 0.0, 0.0, 0.0, 1.0, 0.0]
 '''
 
+class ArucoSubscribeListener(rospy.SubscribeListener):
+    
+    def __init__(self, tbzed):
+        self.tbzed = tbzed
+
+    def peer_subscribe(self, topic_name, topic_publish, peer_publish):
+        print("New subscriber on", topic_name)
+        self.tbzed.subscribe_zed()
+
+    def peer_unsubscribe(self, topic_name, num_peers):
+        print("Unsubscribe received on", topic_name, "with", num_peers, "subscribers remaining")
+        self.tbzed.unsubscribe_zed()
+
+
+
 class TurtlebotArucoZed:
 
     def __init__(self):
-        # self.img = None
         self.pub = None
         self.pub2 = None
+        self.zed_sub = None
         pass
 
-    # Define a callback for the Image message
     def image_callback(self, img_msg):
-        # log some info about the image topic
         rospy.loginfo(img_msg.header)
 
         # Try to convert the ROS Image message to a CV2 Image
@@ -61,10 +70,6 @@ class TurtlebotArucoZed:
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))
 
-
-        # Show the converted image
-        # show_image(cv_image)
-        # self.img = cv_image
         if cv_image.shape[2] == 4:
             cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGRA2BGR)
         
@@ -79,11 +84,27 @@ class TurtlebotArucoZed:
         self.pub2.publish(img_msg)
 
 
+    def subscribe_zed(self):
+        self.zed_sub = rospy.Subscriber("/zedm/zed_node/left/image_rect_color", Image, self.image_callback)
+        print("Camera engaged.")
+    
+    def unsubscribe_zed(self):
+        if self.zed_sub is not None:
+            self.zed_sub.unregister()
+            self.zed_sub = None
+            print("Camera disengaged.")
+
+            # # publish no-marker message since camera feed is disengaged
+            # aruco_msg = Aruco(has_marker=False, r=Vector3(0,0,0), t=Vector3(0,0,0), debug_image=None)
+            # self.pub.publish(aruco_msg)
+
 
     def run(self): 
         rospy.init_node('turtlebot_aruco_zed', anonymous=True) 
+
+        self.sublistener = ArucoSubscribeListener(self)
         
-        self.pub = rospy.Publisher('aruco', Aruco, queue_size=1, latch=True)
+        self.pub = rospy.Publisher('aruco', Aruco, queue_size=1, subscriber_listener=self.sublistener)
         self.pub2 = rospy.Publisher('aruco_debug_image', Image, queue_size=1)
         
         print("Waiting for camera calibration info...")
@@ -98,24 +119,6 @@ class TurtlebotArucoZed:
 
         self.arucoDetector = ArucoDetector(camera_matrix, distortion_matrix)
 
-        sub = rospy.Subscriber("/zedm/zed_node/left/image_rect_color", Image, self.image_callback)
-
-        madeWindow = False
-
-        # Loop to keep the program from shutting down unless ROS is shut down, or CTRL+C is pressed
-        # while not rospy.is_shutdown():
-        #     if self.img is not None:
-        #         if not madeWindow:
-        #             cv2.namedWindow("Image Window", 1)
-        #             madeWindow = True
-                
-        #         cv2.imshow("Image Window", self.img)
-        #         if cv2.waitKey(1) & 0xFF == ord('q'):
-        #             break
-        #         # cv2.destroyAllWindows()
-
-        #     # rospy.spin()
-        #     time.sleep(0.01)
         rospy.spin()
 
 
