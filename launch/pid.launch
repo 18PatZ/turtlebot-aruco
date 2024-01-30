@@ -17,7 +17,7 @@
       <param name="pid_enable_topic" value="/pid/enabled" />
       <param name="angle_error" value="true" />
       <param name="angle_wrap" value="360" />
-     </node>
+    </node>
 
     <node name="turtle_yaw_node" pkg="pid" type="plant_sim" output="screen" >
       <param name="plant_order" value="2" />

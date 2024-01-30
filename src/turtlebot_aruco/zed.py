@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy 
 from std_msgs.msg import String 
@@ -14,7 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import time
 
 import numpy as np
-from turtlebot_aruco.turtle_aruco import ArucoDetector
+from turtlebot_aruco.turtle_aruco_legacy import ArucoDetector
 
 
 # Initialize the CvBridge class
@@ -59,6 +59,7 @@ class TurtlebotArucoZed:
         self.pub = None
         self.pub2 = None
         self.zed_sub = None
+        self.TARGET_ID = None
         pass
 
     def image_callback(self, img_msg):
@@ -73,7 +74,7 @@ class TurtlebotArucoZed:
         if cv_image.shape[2] == 4:
             cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGRA2BGR)
         
-        has_marker, rotation, translation, img = self.arucoDetector.process(cv_image)
+        has_marker, rotation, translation, img = self.arucoDetector.process(cv_image, target_id=self.TARGET_ID)
         r = Vector3(rotation[0], rotation[1], rotation[2])
         t = Vector3(translation[0], translation[1], translation[2])
 
@@ -101,6 +102,8 @@ class TurtlebotArucoZed:
 
     def run(self): 
         rospy.init_node('turtlebot_aruco_zed', anonymous=True) 
+
+        self.TARGET_ID = rospy.get_param('~aruco_target_id')
 
         self.sublistener = ArucoSubscribeListener(self)
         

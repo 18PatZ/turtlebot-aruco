@@ -82,10 +82,12 @@ class ArucoDetector:
             exit()
 
         # Constant parameters used in Aruco methods
-        ARUCO_PARAMETERS = aruco.DetectorParameters()
-        ARUCO_DICT = aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)
+        # ARUCO_PARAMETERS = aruco.DetectorParameters()
+        # ARUCO_DICT = aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)
+        self.ARUCO_PARAMETERS = aruco.DetectorParameters_create()
+        self.ARUCO_DICT = aruco.Dictionary_get(aruco.DICT_5X5_1000)
 
-        self.detector = aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMETERS)
+        # self.detector = aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMETERS)
 
         self.markerLength = markerLength = 54#50.8#(18.83 * 16/20) / 1000#0.05;
         self.objPoints = np.array([
@@ -104,7 +106,8 @@ class ArucoDetector:
         gray = cv2.cvtColor(QueryImg, cv2.COLOR_BGR2GRAY)
     
         # Detect Aruco markers
-        corners, ids, rejectedImgPoints = self.detector.detectMarkers(gray)
+        # corners, ids, rejectedImgPoints = self.detector.detectMarkers(gray)
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, self.ARUCO_DICT, parameters=self.ARUCO_PARAMETERS)
     
         # # Refine detected markers
         # # Eliminates markers not part of our board, adds missing markers to the board
