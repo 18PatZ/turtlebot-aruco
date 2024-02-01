@@ -15,6 +15,8 @@ import math
 import numpy as np
 from enum import Enum
 
+from turtlebot_aruco.mdp.formationAnimation import *
+
 TILE_SIZE = 0.2286
 
 found_marker = None
@@ -525,6 +527,12 @@ if __name__=="__main__":
     pub_pid_enabled = rospy.Publisher('/pid/enabled', Bool, queue_size=1, latch=True)
 
     pub_reset = rospy.Publisher('/reset', Empty, queue_size=1)
+
+    print("jo")
+    runFormationAnimation()
+
+    if True:
+        exit(0)
 
     pub_pid_enabled.publish(False)
     set_velocity(0.0, 0.0)
