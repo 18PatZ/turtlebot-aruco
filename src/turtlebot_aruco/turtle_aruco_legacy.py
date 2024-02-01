@@ -89,7 +89,7 @@ class ArucoDetector:
 
         # self.detector = aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMETERS)
 
-        self.markerLength = markerLength = 54#50.8#(18.83 * 16/20) / 1000#0.05;
+        self.markerLength = markerLength = 12.1#54#50.8#(18.83 * 16/20) / 1000#0.05;
         self.objPoints = np.array([
             [-markerLength/2, markerLength/2, 0],
             [markerLength/2, markerLength/2, 0],
