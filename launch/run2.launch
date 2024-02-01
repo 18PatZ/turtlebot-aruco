@@ -1,0 +1,15 @@
+<launch>
+    <!-- Launch Turtlebot, ZED, and PID controller -->
+    <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch" />
+    <include file="$(find zed_wrapper)/launch/zedm.launch" />
+    <include file="$(find turtlebot_aruco)/launch/pid.launch" />
+    
+    <!-- Launch IMU-to-yaw converter and PID-to-cmdvel relay -->
+    <node name="imu_yaw_node" pkg="turtlebot_aruco" type="imu_to_yaw.py" output="screen" ></node>
+    <node name="pid_cmdvel_node" pkg="turtlebot_aruco" type="pid_to_cmdvel.py" output="screen" ></node>
+
+    <!-- Launch ZED Aruco processor -->
+    <node name="zed_aruco_node" pkg="turtlebot_aruco" type="zed.py" output="screen" >
+      <param name="aruco_target_id" value="72" />
+    </node>
+</launch>
