@@ -14,6 +14,14 @@ import cv2
 from turtlebot_aruco.mdp.formation import *
 
 
+formation_actions = {
+    "DOUBLE": (2, 0), 
+    "FORWARD": (1, 0), 
+    "LEFT": (1, -1), 
+    "RIGHT": (1, 1)
+}
+
+
 def policyActionQuery(time, state, policy, checkin_period):
     macro_action = policy[state]
     time_within_period = time % checkin_period
@@ -121,12 +129,6 @@ def npa(tup):
     return np.array([tup[0], tup[1]])
 
 def move(pos, action, moveProb):
-    formation_actions = {
-        "DOUBLE": (2, 0), 
-        "FORWARD": (1, 0), 
-        "LEFT": (1, -1), 
-        "RIGHT": (1, 1)
-    }
 
     displace = npa(formation_actions[action])
     r = random.random()
@@ -147,13 +149,16 @@ def animationLoop(grid, mdp, policy, checkin_period, center_state, initial_sep, 
     g1Poses = []
     g2Poses = []
 
+    t = 0
+
     while True:
         w = 1500
         h = 800
         
         frame_canvas = np.zeros((h, w, 3), np.uint8)
 
-        t = 0
+        if t >= checkin_period:
+            t = 0
         sep = g1Pos - g2Pos
         action, macro_action = policy(t, sepToState(sepX = int(sep[0]), sepY = int(sep[1]), center_state = center_state))
         
@@ -226,12 +231,13 @@ def animationLoop(grid, mdp, policy, checkin_period, center_state, initial_sep, 
 
 def runFormationAnimation():
 
-    maxSeparation = 4
+    maxSeparation = 5#4
     moveProb = 0.9#0.9
 
     grid, mdp, start_state = formationMDP(
+        formation1_actions=formation_actions,
         maxSeparation = maxSeparation, 
-        desiredSeparation = 2, 
+        desiredSeparation = 3, 
         moveProb = moveProb, 
         wallPenalty = -10, 
         movePenalty = 0, 
@@ -244,10 +250,10 @@ def runFormationAnimation():
     centerInd = int(len(grid) / 2)
     center_state = (centerInd, centerInd)
 
-    checkin_period = 1
+    checkin_period = 3
     policy = getPolicy(grid, mdp, start_state, discount, discount_checkin, checkin_period)
 
-    initial_sep = np.array([-1, -1])
+    initial_sep = np.array([5, -1])
 
     animationLoop(grid, mdp, policy, checkin_period, center_state, initial_sep, moveProb, maxSeparation)
     

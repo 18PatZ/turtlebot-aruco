@@ -141,8 +141,8 @@ def formationScheduleCheckinCostFunctionMulti(strides, discount):
     return -total_cost
 
 
-def formationMDP(maxSeparation = 4, desiredSeparation = 2, moveProb = 0.9, wallPenalty = -10, movePenalty = 0, collidePenalty = -100, desiredStateReward=5):
-    gridSize = maxSeparation * 2 + 1
+def formationMDP(formation1_actions, maxSeparation = 4, desiredSeparation = 2, moveProb = 0.9, wallPenalty = -10, movePenalty = 0, collidePenalty = -100, desiredStateReward=5):
+    gridSize = int(maxSeparation * 2 + 1)
 
     # grid = [
     #     [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -165,12 +165,12 @@ def formationMDP(maxSeparation = 4, desiredSeparation = 2, moveProb = 0.9, wallP
     start_state = (centerInd, centerInd - desiredSeparation - 1)
 
     # we have the formation always moving to the right. "Left" means it goes diagonally. TODO variable speeds
-    formation1_actions = {
-        "DOUBLE": (2, 0), 
-        "FORWARD": (1, 0), 
-        "LEFT": (1, -1), 
-        "RIGHT": (1, 1)
-    }
+    # formation1_actions = {
+    #     "DOUBLE": (2, 0), 
+    #     "FORWARD": (1, 0), 
+    #     "LEFT": (1, -1), 
+    #     "RIGHT": (1, 1)
+    # }
 
     # the world is centered around formation 2: states represent relative position of g1 to g2. thus g2 actions inverse g1 actions
     formation2_actions = {key: multTup(formation1_actions[key], -1) for key in formation1_actions}

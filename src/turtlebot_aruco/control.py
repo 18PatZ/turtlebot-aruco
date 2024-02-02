@@ -18,7 +18,12 @@ from enum import Enum
 from turtlebot_aruco.mdp.formationAnimation import *
 
 TILE_SIZE = 0.2286
+STATE_SCALE_FACTOR = 0.5
+EXECUTION_SPEED = 0.1
 
+LIN_VEL_STEP_SIZE = 0.01
+STEP_TIME = 0.01
+     
 found_marker = None
 pub = None
 pub_pid_yaw = None
@@ -28,13 +33,24 @@ original_yaw = None
 sub = None
 agent_id = None
 
-class ACTION(Enum):
-    FORWARD = (1,0)
-    DOUBLE = (2,0)
-    LEFT = (1, 1)
-    RIGHT = (1, -1)
-    DOUBLE_FW_LEFT = (2, 1)
-    DOUBLE_FW_RIGHT = (2, -1)
+displacement = (0,0)
+
+# class ACTION(Enum):
+#     FORWARD = (1,0)
+#     DOUBLE = (2,0)
+#     LEFT = (1, 1)
+#     RIGHT = (1, -1)
+#     DOUBLE_FW_LEFT = (2, 1)
+#     DOUBLE_FW_RIGHT = (2, -1)
+
+ACTIONS = {
+    "DOUBLE": (1, 0), 
+    "FORWARD": (0.5, 0),
+    "LEFT": (0.5, 1),
+    # "SLIGHT_LEFT": (1, 0.5), 
+    "RIGHT": (0.5, -1)
+    # "SLIGHT_RIGHT": (1, -0.5)
+}
 
 
 
@@ -84,7 +100,14 @@ def turn_to_marker(direction):
     start = time.time()
 
     print(id()+": Turning towards believed position of companion...")
-    turn_with_pid(original_yaw + direction * 90, 5)
+    # turn_with_pid(original_yaw + direction * 90, 5)
+    angle = direction * 90 * math.pi / 180
+    turn_speed = 0.5
+    time_to_turn = abs(angle / turn_speed)
+    print(angle,turn_speed,time_to_turn)
+    set_turn_velocity(turn_speed * direction)
+    time.sleep(time_to_turn)
+    set_turn_velocity(0)
 
     print(id()+": Engaging camera...")
     subscribe_aruco()
@@ -113,7 +136,7 @@ def turn_to_marker(direction):
     set_turn_velocity(0.0)
     
     print(id()+": Found marker! Obtaining yaw...")
-    time.sleep(3)
+    time.sleep(2)
     current_yaw = get_yaw()
     print(id()+": We are currently at yaw", current_yaw)
 
@@ -145,8 +168,8 @@ def turn_to_marker(direction):
     print(id()+": Initiating gyro re-calibration.")
     pub_reset.publish(Empty()) # note there is some delay between publish and calibration starting
 
-    print(id()+": Waiting ten seconds for camera CPU wind down and gyro calibration...")
-    time.sleep(10)
+    print(id()+": Waiting eight seconds for camera CPU wind down and gyro calibration...")
+    time.sleep(8)
 
     current_yaw = get_yaw() # also serves purpose of blocking until calibration finished
     print(id()+": Re-calibrated gyro states current yaw as", current_yaw)
@@ -156,9 +179,9 @@ def turn_to_marker(direction):
     pub_pid_enabled.publish(True)
 
     turn_start = time.time()
-    time.sleep(5)
+    time.sleep(3)
 
-    while abs(ang_diff(original_yaw, get_yaw())) > 2 and time.time()-turn_start < 10:
+    while abs(ang_diff(original_yaw, get_yaw())) > 2 and time.time()-turn_start < 5:
         # print(id()+": Angle to target:", ang_diff(original_yaw, get_yaw()))
         time.sleep(0.1)
 
@@ -167,7 +190,7 @@ def turn_to_marker(direction):
     time.sleep(0.5)
     set_turn_velocity(0.0)
 
-    remaining_time = 35 - (time.time()-start)
+    remaining_time = 25 - (time.time()-start)
     if remaining_time < 0:
         remaining_time = 0
     print("Waiting remaining time:", remaining_time)
@@ -175,6 +198,8 @@ def turn_to_marker(direction):
     
     print(id()+": Check-in complete. Current yaw", get_yaw(), "vs original", original_yaw)
     found_marker = None
+
+    return state
 
 
 
@@ -375,9 +400,7 @@ def drive_straight():
     time.sleep(5 * tile_size / speed)
     set_velocity(0.0, 0.0)
 
-
-def drive_arc(x, y, speed):
-
+def compute_drive_params(x, y, speed):
     # x forwards, y left
     # r^2 = x^2 + (r-y)^2
     # r^2 = x^2 + r^2 - 2ry + y^2
@@ -414,22 +437,20 @@ def drive_arc(x, y, speed):
     # time_to_travel = abs(distance / speed)
 
     # motor cannot jump to certain speeds immediately so needs a ramp up period
-    LIN_VEL_STEP_SIZE = 0.01
-    step_time = 0.01
     num_steps = int(math.ceil(abs(speed) / LIN_VEL_STEP_SIZE))
-    ramp_up_time = num_steps * step_time
+    ramp_up_time = num_steps * STEP_TIME
 
     # 0.01*0.01 + (1+2+3+...+t)
-    distance_ramp_up = LIN_VEL_STEP_SIZE * step_time * num_steps*(num_steps+1) / 2.0
+    distance_ramp_up = LIN_VEL_STEP_SIZE * STEP_TIME * num_steps*(num_steps+1) / 2.0
 
     if distance_ramp_up > distance:
         # (n^2+n) * step/2 = d
         # n^2 + n - 2d/step = 0
         # n = -1 + sqrt(1 + 4*2d/step) / 2
         num_steps = int(-1 + math.sqrt(1 + 4 * 2 * distance / LIN_VEL_STEP_SIZE) / 2)
-        print("Not enough distance - cannot ramp up to", speed)
+        print(id()+": Not enough distance - cannot ramp up to", speed)
         speed = num_steps * LIN_VEL_STEP_SIZE
-        print("Ramping up to", speed, "instead")
+        print(id()+": Ramping up to", speed, "instead")
         distance_ramp_up = LIN_VEL_STEP_SIZE * num_steps*(num_steps+1) / 2.0
 
     time_to_travel_remaining = abs((distance-distance_ramp_up) / speed)
@@ -437,34 +458,40 @@ def drive_arc(x, y, speed):
 
     angular_velocity = angle / time_to_travel
 
+    turn_speed = 0.5
+    time_to_turn = min(1.0, abs(angle / turn_speed))
+
     # print(distance, num_steps, angle, r, speed, time_to_travel, angular_velocity)
     # print(num_steps, ramp_up_time, time_to_travel_remaining, time_to_travel)
     # print(distance, distance_ramp_up)
+
+    return num_steps, time_to_travel_remaining, time_to_travel, angle, angular_velocity, time_to_turn
+
+def drive_arc(x, y, speed):
+
+    num_steps, time_to_travel_remaining, time_to_travel, angle, angular_velocity, time_to_turn = compute_drive_params(x, y, speed)    
 
     # ramp up
     sp = 0
     for i in range(num_steps):
         sp += math.copysign(LIN_VEL_STEP_SIZE, speed)
         set_velocity(sp, angular_velocity)
-        time.sleep(step_time)
+        time.sleep(STEP_TIME)
 
     set_velocity(speed, angular_velocity)
     time.sleep(time_to_travel_remaining)
     set_velocity(0.0, 0.0)
 
     # turn back to forward
-    # turn_speed = math.copysign(0.1, -angular_velocity)
-    # time_to_turn = -angle / turn_speed
-
-    turn_speed = 0.5
-    time_to_turn = min(1.0, abs(angle / turn_speed))
-
+    
     if time_to_turn > 0:
         turn_speed = -angle / time_to_turn
         
         set_velocity(0.0, turn_speed)
         time.sleep(time_to_turn)
         set_velocity(0.0, 0.0)
+
+    return time_to_travel + time_to_turn
 
 
 def wait_for_start():
@@ -479,42 +506,142 @@ def checkin():
         turn_direction = -1
     elif agent_id == 1:
         turn_direction = 1
-    turn_to_marker(turn_direction)
+    return turn_to_marker(turn_direction)
+
 
 def id():
     return "TB"+str(agent_id)
 
+
 def execute_action(action):
-    print("Executing action", action.name)
-    drive_arc(action.value[0], action.value[1], 0.1)
+    global displacement
+    # print(id()+": Executing action", action.name)
+    # drive_arc(action.value[0], action.value[1], 0.1)
+    print(id()+": Executing action", action)
+    print(id()+":",ACTIONS[action][0], ACTIONS[action][1])
 
-def run():
-    # checkin()
+    x = ACTIONS[action][0]
+    y = ACTIONS[action][1]
 
-    execute_action(ACTION.DOUBLE)
-    # execute_action(ACTION.RIGHT)
+    displacement = (displacement[0] + x, displacement[1] + y)
+
+    return drive_arc(x, y, EXECUTION_SPEED)
+
+
+def policyActionQuery(time, state, policy, checkin_period):
+    macro_action = policy[state]
+    time_within_period = time % checkin_period
+    return macro_action[time_within_period], macro_action
+
+def getPolicy(grid, mdp, start_state, discount, discount_checkin, checkin_period):
+    _, policy, _, compMDP = run(grid, mdp, discount, start_state, 
+                checkin_period=checkin_period, doBranchAndBound=False, 
+                drawPolicy=False, drawIterations=False, 
+                outputPrefix="", doLinearProg=True, 
+                bnbGreedy=-1, doSimilarityCluster=False, 
+                simClusterParams=None, outputDir="/home/patty/output")
     
-    checkin()
+    # print(policy)
+    # policy = {(0, 0): ('DOUBLE-LEFT',), (1, 0): ('DOUBLE-LEFT',), (2, 0): ('DOUBLE-LEFT',), (3, 0): ('DOUBLE-LEFT',), (4, 0): ('RIGHT-LEFT',), (5, 0): ('RIGHT-DOUBLE',), (6, 0): ('RIGHT-DOUBLE',), (7, 0): ('RIGHT-DOUBLE',), (8, 0): ('RIGHT-DOUBLE',), (0, 1): ('DOUBLE-LEFT',), (1, 1): ('DOUBLE-LEFT',), (2, 1): ('DOUBLE-LEFT',), (3, 1): ('DOUBLE-LEFT',), (4, 1): ('FORWARD-LEFT',), (5, 1): ('RIGHT-DOUBLE',), (6, 1): ('RIGHT-DOUBLE',), (7, 1): ('RIGHT-DOUBLE',), (8, 1): ('RIGHT-DOUBLE',), (0, 2): ('DOUBLE-FORWARD',), (1, 2): ('DOUBLE-FORWARD',), (2, 2): ('DOUBLE-FORWARD',), (3, 2): ('DOUBLE-FORWARD',), (4, 2): ('DOUBLE-DOUBLE',), (5, 2): ('FORWARD-DOUBLE',), (6, 2): ('FORWARD-DOUBLE',), (7, 2): ('FORWARD-DOUBLE',), (8, 2): ('FORWARD-DOUBLE',), (0, 3): ('DOUBLE-RIGHT',), (1, 3): ('DOUBLE-RIGHT',), (2, 3): ('DOUBLE-RIGHT',), (3, 3): ('DOUBLE-RIGHT',), (4, 3): ('FORWARD-RIGHT',), (5, 3): ('LEFT-DOUBLE',), (6, 3): ('LEFT-DOUBLE',), (7, 3): ('LEFT-DOUBLE',), (8, 3): ('LEFT-DOUBLE',), (0, 4): ('DOUBLE-LEFT',), (1, 4): ('DOUBLE-LEFT',), (2, 4): ('DOUBLE-LEFT',), (3, 4): ('LEFT-RIGHT',), (4, 4): ('LEFT-RIGHT',), (5, 4): ('LEFT-RIGHT',), (6, 4): ('LEFT-DOUBLE',), (7, 4): ('LEFT-DOUBLE',), (8, 4): ('LEFT-DOUBLE',), (0, 5): ('DOUBLE-LEFT',), (1, 5): ('DOUBLE-LEFT',), (2, 5): ('DOUBLE-LEFT',), (3, 5): ('DOUBLE-LEFT',), (4, 5): ('FORWARD-LEFT',), (5, 5): ('RIGHT-DOUBLE',), (6, 5): ('RIGHT-DOUBLE',), (7, 5): ('RIGHT-DOUBLE',), (8, 5): ('RIGHT-DOUBLE',), (0, 6): ('DOUBLE-FORWARD',), (1, 6): ('DOUBLE-FORWARD',), (2, 6): ('DOUBLE-FORWARD',), (3, 6): ('DOUBLE-FORWARD',), (4, 6): ('DOUBLE-DOUBLE',), (5, 6): ('FORWARD-DOUBLE',), (6, 6): ('FORWARD-DOUBLE',), (7, 6): ('FORWARD-DOUBLE',), (8, 6): ('FORWARD-DOUBLE',), (0, 7): ('DOUBLE-RIGHT',), (1, 7): ('DOUBLE-RIGHT',), (2, 7): ('DOUBLE-RIGHT',), (3, 7): ('DOUBLE-RIGHT',), (4, 7): ('FORWARD-RIGHT',), (5, 7): ('LEFT-DOUBLE',), (6, 7): ('LEFT-DOUBLE',), (7, 7): ('LEFT-DOUBLE',), (8, 7): ('LEFT-DOUBLE',), (0, 8): ('DOUBLE-RIGHT',), (1, 8): ('DOUBLE-RIGHT',), (2, 8): ('DOUBLE-RIGHT',), (3, 8): ('DOUBLE-RIGHT',), (4, 8): ('LEFT-RIGHT',), (5, 8): ('LEFT-DOUBLE',), (6, 8): ('LEFT-DOUBLE',), (7, 8): ('LEFT-DOUBLE',), (8, 8): ('LEFT-DOUBLE',)}
+    # policy = {(0, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-FORWARD'), (1, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-RIGHT'), (2, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-DOUBLE'), (3, 0): ('DOUBLE-LEFT', 'FORWARD-LEFT', 'DOUBLE-DOUBLE'), (4, 0): ('RIGHT-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 0): ('RIGHT-DOUBLE', 'FORWARD-LEFT', 'DOUBLE-DOUBLE'), (6, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'LEFT-DOUBLE'), (8, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'FORWARD-DOUBLE'), (0, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 1): ('DOUBLE-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 1): ('FORWARD-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 1): ('RIGHT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 2): ('DOUBLE-FORWARD', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 2): ('DOUBLE-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 2): ('FORWARD-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 3): ('DOUBLE-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 3): ('FORWARD-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 3): ('LEFT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-FORWARD'), (1, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-LEFT'), (2, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-DOUBLE'), (3, 4): ('RIGHT-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (4, 4): ('RIGHT-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 4): ('RIGHT-LEFT', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (6, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'RIGHT-DOUBLE'), (8, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'FORWARD-DOUBLE'), (0, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 5): ('DOUBLE-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 5): ('FORWARD-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 5): ('RIGHT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 6): ('DOUBLE-FORWARD', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 6): ('DOUBLE-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 6): ('FORWARD-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 7): ('DOUBLE-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 7): ('FORWARD-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 7): ('LEFT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-FORWARD'), (1, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-LEFT'), (2, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-DOUBLE'), (3, 8): ('DOUBLE-RIGHT', 'FORWARD-RIGHT', 'DOUBLE-DOUBLE'), (4, 8): ('LEFT-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 8): ('LEFT-DOUBLE', 'FORWARD-RIGHT', 'DOUBLE-DOUBLE'), (6, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'RIGHT-DOUBLE'), (8, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'FORWARD-DOUBLE')}
 
-    drive_arc(-2, 0, -0.1)
-
-    checkin()
-
-    # execute_action(ACTION.DOUBLE_FW_LEFT)
-
-    # checkin()
+    # return lambda time, state: policyActionQuery(time, state, policy, checkin_period)
+    return policy
 
 
-    # # print("Driving back...")
-    # drive_arc(-5, 0, -0.1)
-    # # print("Drive complete.")
+def sepToState(sepX, sepY, center_state):
+    sepX = int(round(sepX/STATE_SCALE_FACTOR))
+    sepY = -int(round(sepY/STATE_SCALE_FACTOR))
+    return (center_state[0] + sepX, center_state[1] + sepY)
 
-    # checkin()
+def convert_action(action):
+    a = ACTIONS[action]
+    return (int(a[0]/STATE_SCALE_FACTOR), int(-a[1]/STATE_SCALE_FACTOR))
+
+def execute_policy(policy, center_state):
+    global displacement
+    displacement = (0,0)
+
+    print(id()+": EXECUTING POLICY.")
+
+    for i in range(2):
+
+        state = checkin()#(1, 4)
+        print("\n"+id()+": CHECKIN",i+1," | STATE: ALONG =", state[0], "CROSS = ", state[1])
+        
+        state = sepToState(state[0], state[1], center_state)
+
+        joint_macro_action = policy[state]
+        print(id()+": CHECKIN",i+1," | JOINT MACRO ACTION", joint_macro_action)
+
+        my_time = 0
+        companion_time = 0
+
+        for j in range(len(joint_macro_action)):
+            joint_action = joint_macro_action[j]
+            print(id()+":   JOINT ACTION", joint_action)
+
+            spl = joint_action.split("-")
+            action = spl[agent_id]
+            print(id()+":   INDIVIDUAL ACTION", action)
+
+            my_time += execute_action(action)
+
+            companion_action = spl[0 if agent_id == 1 else 1]
+            cx = ACTIONS[companion_action][0]
+            cy = ACTIONS[companion_action][1]
+            _, _, time_to_travel, _, _, time_to_turn = compute_drive_params(cx, cy, EXECUTION_SPEED)
+            companion_time += time_to_travel + time_to_turn
+        
+
+        time_to_wait = companion_time - my_time
+        if time_to_wait > 0: # companion's actions take longer, wait for them
+            print(id()+":   Waiting", time_to_wait, "for companion to finish execution")
+            time.sleep(time_to_wait)
+
+    final_state = checkin()
+
+    # check reward
+    print(id()+":  RETURNING TO START")
+    drive_arc(-displacement[0], -displacement[1], -0.2)
+    print(id()+":  COMPLETE.")
 
 
-    # print("Driving arc...")
-    # drive_arc(2, 2, 0.1)
-    # print("Drive complete.")
+def run_mdp():
+    maxSeparation = 6#4
+    desiredSeparation = 2
+    moveProb = 0.95#0.9
+
+    actions_convert = {k:convert_action(k) for k in ACTIONS}
+
+    grid, mdp, start_state = formationMDP(
+        formation1_actions=actions_convert,
+        maxSeparation = maxSeparation/STATE_SCALE_FACTOR, 
+        desiredSeparation = desiredSeparation/STATE_SCALE_FACTOR, 
+        moveProb = moveProb, 
+        wallPenalty = -10, 
+        movePenalty = 0, 
+        collidePenalty = -100, 
+        desiredStateReward=5)
+
+    discount = math.sqrt(0.99)
+    discount_checkin = discount
+
+    centerInd = int(len(grid) / 2)
+    center_state = (centerInd, centerInd)
+
+    checkin_period = 2
+    policy = getPolicy(grid, mdp, start_state, discount, discount_checkin, checkin_period)
+
+    # initial_sep = np.array([0, -1])
+
+    print(id()+": Waiting for start command...")
+    wait_for_start()
+    print(id()+": Received start command.")
+
+    execute_policy(policy, center_state)
+
+
 
 
 if __name__=="__main__":
@@ -528,11 +655,11 @@ if __name__=="__main__":
 
     pub_reset = rospy.Publisher('/reset', Empty, queue_size=1)
 
-    print("jo")
-    runFormationAnimation()
+    # runFormationAnimation()
+    # run_mdp()
 
-    if True:
-        exit(0)
+    # if True:
+    #     exit(0)
 
     pub_pid_enabled.publish(False)
     set_velocity(0.0, 0.0)
@@ -544,47 +671,4 @@ if __name__=="__main__":
     original_yaw = get_yaw()
     print(id()+": Started at yaw", original_yaw,".")
 
-    print(id()+": Waiting for start command...")
-    wait_for_start()
-    print(id()+": Received start command.")
-
-    run()
-
-    # print("Driving forward one...")
-    # drive_straight()
-    # print("Drive complete.")
-
-    # set_velocity(0.1, 0)
-    # time.sleep(TILE_SIZE)
-    # set_velocity(0.2, 0)
-    # time.sleep(TILE_SIZE)
-    # remember wheels cant spin up to 0.2 immediately
-
-    # sync(agent_id)
-
-    # print("Driving arc...")
-    # drive_arc(2, 1, 0.05)
-    # print("Drive complete.")
-
-    # print("Driving arc...")
-    # drive_arc(1, -2, 0.1)
-    # print("Drive complete.")
-
-    # print("Driving arc...")
-    # drive_arc(2, 2, 0.1)
-    # print("Drive complete.")
-
-    # time.sleep(2)
-
-    # print("Driving arc...")
-    # drive_arc(-6, -1, -0.2)
-    # print("Drive complete.")
-
-    
-
-
-    # print("Driving arc...")
-    # drive_arc(-2, -1, -0.1)
-    # print("Drive complete.")
-
-    # turn_to_marker(turn_direction)
+    run_mdp()
