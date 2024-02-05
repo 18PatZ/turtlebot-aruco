@@ -75,8 +75,14 @@ def formationStateRewardFunction(max_reward, state, center_state, desiredSeparat
     x_diff = state[0] - center_state[0]
     x_reward = gaussian1D(peak, x_diff, sigma)
 
-    y_diff = abs(state[1] - center_state[1]) - desiredSeparation
-    y_reward = gaussian1D(peak, y_diff, sigma)
+    # y_diff = abs(state[1] - center_state[1]) - desiredSeparation
+    # y_reward = gaussian1D(peak, y_diff, sigma)
+
+    if state[1] - center_state[1] < 0: # TB1 is on the left of TB2
+        y_diff = abs(state[1] - center_state[1]) - desiredSeparation
+        y_reward = gaussian1D(peak, y_diff, sigma)
+    else: # bad!! robots can't see each other here
+        y_reward = -max_reward
 
     return x_reward + y_reward
 

@@ -2,9 +2,8 @@
 
 import rospy 
 from std_msgs.msg import String, Float64, Bool, Empty, Int32
-from sensor_msgs.msg import Image, CameraInfo, Imu
 from geometry_msgs.msg import Twist
-from geometry_msgs.msg import Vector3
+from turtlebot3_msgs.msg import Sound
 
 from turtlebot_aruco.msg import Aruco
 
@@ -13,45 +12,24 @@ import cv2
 import time
 import math
 import numpy as np
-from enum import Enum
+import json
 
-from turtlebot_aruco.mdp.formationAnimation import *
+import socket
+import select
 
-TILE_SIZE = 0.2286
-STATE_SCALE_FACTOR = 0.5
-EXECUTION_SPEED = 0.1
+from turtlebot_aruco.common import *
 
-LIN_VEL_STEP_SIZE = 0.01
-STEP_TIME = 0.01
-     
 found_marker = None
 pub = None
 pub_pid_yaw = None
 pub_pid_enabled = None
+pub_sound = None
 original_yaw = None
 
 sub = None
 agent_id = None
 
 displacement = (0,0)
-
-# class ACTION(Enum):
-#     FORWARD = (1,0)
-#     DOUBLE = (2,0)
-#     LEFT = (1, 1)
-#     RIGHT = (1, -1)
-#     DOUBLE_FW_LEFT = (2, 1)
-#     DOUBLE_FW_RIGHT = (2, -1)
-
-ACTIONS = {
-    "DOUBLE": (1, 0), 
-    "FORWARD": (0.5, 0),
-    "LEFT": (0.5, 1),
-    # "SLIGHT_LEFT": (1, 0.5), 
-    "RIGHT": (0.5, -1)
-    # "SLIGHT_RIGHT": (1, -0.5)
-}
-
 
 
 def aruco_callback(aruco_msg):
@@ -97,7 +75,8 @@ def rotate_vec(vec, ang):
 
 def turn_to_marker(direction):
     global found_marker
-    start = time.time()
+    found_marker = None
+    # start = time.time()
 
     print(id()+": Turning towards believed position of companion...")
     # turn_with_pid(original_yaw + direction * 90, 5)
@@ -112,20 +91,20 @@ def turn_to_marker(direction):
     print(id()+": Engaging camera...")
     subscribe_aruco()
 
-    print(id()+": Camera engaged. Beginning turn...")
+    print(id()+": Camera engaged. Beginning sweep...")
+
+    search_range = 90 * math.pi / 180
+    search_speed = 0.1 if agent_id == 0 else 0.2
 
     stage = 0
     t = 0
     search_dir = -1#direction
-    set_turn_velocity(0.1 * search_dir)
-
-    search_range = 90 * math.pi / 180
-    search_speed = 0.1
+    set_turn_velocity(search_speed * search_dir)
 
     while found_marker is None:
         if (stage == 0 and t > search_range/search_speed) or (stage > 0 and t > search_range*2/search_speed):
             search_dir *= -1
-            set_turn_velocity(0.1 * search_dir)
+            set_turn_velocity(search_speed * search_dir)
             t = 0
             if stage == 0:
                 stage += 1
@@ -160,6 +139,8 @@ def turn_to_marker(direction):
 
     print("\n"+id()+": Current world state: ALONG =", state[0], "CROSS = ", state[1],"\n")
 
+    sync_udp()
+    # start = time.time()
 
     unsubscribe_aruco()
 
@@ -168,8 +149,8 @@ def turn_to_marker(direction):
     print(id()+": Initiating gyro re-calibration.")
     pub_reset.publish(Empty()) # note there is some delay between publish and calibration starting
 
-    print(id()+": Waiting eight seconds for camera CPU wind down and gyro calibration...")
-    time.sleep(8)
+    print(id()+": Waiting ten seconds for camera CPU wind down and gyro calibration...")
+    time.sleep(10)
 
     current_yaw = get_yaw() # also serves purpose of blocking until calibration finished
     print(id()+": Re-calibrated gyro states current yaw as", current_yaw)
@@ -181,7 +162,7 @@ def turn_to_marker(direction):
     turn_start = time.time()
     time.sleep(3)
 
-    while abs(ang_diff(original_yaw, get_yaw())) > 2 and time.time()-turn_start < 5:
+    while abs(ang_diff(original_yaw, get_yaw())) > 2 and time.time()-turn_start < 60:#5:
         # print(id()+": Angle to target:", ang_diff(original_yaw, get_yaw()))
         time.sleep(0.1)
 
@@ -190,11 +171,13 @@ def turn_to_marker(direction):
     time.sleep(0.5)
     set_turn_velocity(0.0)
 
-    remaining_time = 25 - (time.time()-start)
-    if remaining_time < 0:
-        remaining_time = 0
-    print("Waiting remaining time:", remaining_time)
-    time.sleep(remaining_time)
+    # upper_bound = 8+5+0.5+0.5
+    # remaining_time = upper_bound - (time.time()-start)
+    # if remaining_time < 0:
+    #     remaining_time = 0
+    # print("Waiting remaining time:", remaining_time)
+    # time.sleep(remaining_time)
+    sync_udp()
     
     print(id()+": Check-in complete. Current yaw", get_yaw(), "vs original", original_yaw)
     found_marker = None
@@ -392,7 +375,45 @@ def unsubscribe_aruco():
     if sub is not None:
         sub.unregister()
         sub = None
+
+
+def send_sync(sock, dest):
+    sock.sendto(b"SYNC", dest)
   
+
+def sync_udp():
+    port = 6666
+    ip = "turtlebot2" if agent_id == 0 else "turtlebot1"
+    dest = (ip, port)
+    timeout = 0.1
+
+    sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_in.bind(("0.0.0.0", port))
+
+    print("\n\n"+id()+": Initializing virtual flag raising...\n\n")
+    print(id()+": Sending sync messages...")
+
+    while True:
+        send_sync(sock_out, dest)
+
+        ready = select.select([sock_in], [], [], timeout)
+        if ready[0]:
+            data, addr = sock_in.recvfrom(1024)
+            print(id()+": Received", data.decode())
+
+            # increase chances the other robot will get this
+            for i in range(10):
+                send_sync(sock_out, dest)
+
+            break
+    
+    sock_out.close()
+    sock_in.close()
+
+    print(id()+": SYNC ACHIEVED")
+
+
 def drive_straight():
     tile_size = 0.2286
     speed = 0.2
@@ -527,49 +548,21 @@ def execute_action(action):
 
     return drive_arc(x, y, EXECUTION_SPEED)
 
+def play_sound():
+    pub_sound.publish(Sound(1))
 
-def policyActionQuery(time, state, policy, checkin_period):
-    macro_action = policy[state]
-    time_within_period = time % checkin_period
-    return macro_action[time_within_period], macro_action
-
-def getPolicy(grid, mdp, start_state, discount, discount_checkin, checkin_period):
-    _, policy, _, compMDP = run(grid, mdp, discount, start_state, 
-                checkin_period=checkin_period, doBranchAndBound=False, 
-                drawPolicy=False, drawIterations=False, 
-                outputPrefix="", doLinearProg=True, 
-                bnbGreedy=-1, doSimilarityCluster=False, 
-                simClusterParams=None, outputDir="/home/patty/output")
-    
-    # print(policy)
-    # policy = {(0, 0): ('DOUBLE-LEFT',), (1, 0): ('DOUBLE-LEFT',), (2, 0): ('DOUBLE-LEFT',), (3, 0): ('DOUBLE-LEFT',), (4, 0): ('RIGHT-LEFT',), (5, 0): ('RIGHT-DOUBLE',), (6, 0): ('RIGHT-DOUBLE',), (7, 0): ('RIGHT-DOUBLE',), (8, 0): ('RIGHT-DOUBLE',), (0, 1): ('DOUBLE-LEFT',), (1, 1): ('DOUBLE-LEFT',), (2, 1): ('DOUBLE-LEFT',), (3, 1): ('DOUBLE-LEFT',), (4, 1): ('FORWARD-LEFT',), (5, 1): ('RIGHT-DOUBLE',), (6, 1): ('RIGHT-DOUBLE',), (7, 1): ('RIGHT-DOUBLE',), (8, 1): ('RIGHT-DOUBLE',), (0, 2): ('DOUBLE-FORWARD',), (1, 2): ('DOUBLE-FORWARD',), (2, 2): ('DOUBLE-FORWARD',), (3, 2): ('DOUBLE-FORWARD',), (4, 2): ('DOUBLE-DOUBLE',), (5, 2): ('FORWARD-DOUBLE',), (6, 2): ('FORWARD-DOUBLE',), (7, 2): ('FORWARD-DOUBLE',), (8, 2): ('FORWARD-DOUBLE',), (0, 3): ('DOUBLE-RIGHT',), (1, 3): ('DOUBLE-RIGHT',), (2, 3): ('DOUBLE-RIGHT',), (3, 3): ('DOUBLE-RIGHT',), (4, 3): ('FORWARD-RIGHT',), (5, 3): ('LEFT-DOUBLE',), (6, 3): ('LEFT-DOUBLE',), (7, 3): ('LEFT-DOUBLE',), (8, 3): ('LEFT-DOUBLE',), (0, 4): ('DOUBLE-LEFT',), (1, 4): ('DOUBLE-LEFT',), (2, 4): ('DOUBLE-LEFT',), (3, 4): ('LEFT-RIGHT',), (4, 4): ('LEFT-RIGHT',), (5, 4): ('LEFT-RIGHT',), (6, 4): ('LEFT-DOUBLE',), (7, 4): ('LEFT-DOUBLE',), (8, 4): ('LEFT-DOUBLE',), (0, 5): ('DOUBLE-LEFT',), (1, 5): ('DOUBLE-LEFT',), (2, 5): ('DOUBLE-LEFT',), (3, 5): ('DOUBLE-LEFT',), (4, 5): ('FORWARD-LEFT',), (5, 5): ('RIGHT-DOUBLE',), (6, 5): ('RIGHT-DOUBLE',), (7, 5): ('RIGHT-DOUBLE',), (8, 5): ('RIGHT-DOUBLE',), (0, 6): ('DOUBLE-FORWARD',), (1, 6): ('DOUBLE-FORWARD',), (2, 6): ('DOUBLE-FORWARD',), (3, 6): ('DOUBLE-FORWARD',), (4, 6): ('DOUBLE-DOUBLE',), (5, 6): ('FORWARD-DOUBLE',), (6, 6): ('FORWARD-DOUBLE',), (7, 6): ('FORWARD-DOUBLE',), (8, 6): ('FORWARD-DOUBLE',), (0, 7): ('DOUBLE-RIGHT',), (1, 7): ('DOUBLE-RIGHT',), (2, 7): ('DOUBLE-RIGHT',), (3, 7): ('DOUBLE-RIGHT',), (4, 7): ('FORWARD-RIGHT',), (5, 7): ('LEFT-DOUBLE',), (6, 7): ('LEFT-DOUBLE',), (7, 7): ('LEFT-DOUBLE',), (8, 7): ('LEFT-DOUBLE',), (0, 8): ('DOUBLE-RIGHT',), (1, 8): ('DOUBLE-RIGHT',), (2, 8): ('DOUBLE-RIGHT',), (3, 8): ('DOUBLE-RIGHT',), (4, 8): ('LEFT-RIGHT',), (5, 8): ('LEFT-DOUBLE',), (6, 8): ('LEFT-DOUBLE',), (7, 8): ('LEFT-DOUBLE',), (8, 8): ('LEFT-DOUBLE',)}
-    # policy = {(0, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-FORWARD'), (1, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-RIGHT'), (2, 0): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-DOUBLE'), (3, 0): ('DOUBLE-LEFT', 'FORWARD-LEFT', 'DOUBLE-DOUBLE'), (4, 0): ('RIGHT-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 0): ('RIGHT-DOUBLE', 'FORWARD-LEFT', 'DOUBLE-DOUBLE'), (6, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'LEFT-DOUBLE'), (8, 0): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'FORWARD-DOUBLE'), (0, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 1): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 1): ('DOUBLE-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 1): ('FORWARD-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 1): ('RIGHT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 1): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 2): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 2): ('DOUBLE-FORWARD', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 2): ('DOUBLE-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 2): ('FORWARD-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 2): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-RIGHT'), (2, 3): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 3): ('DOUBLE-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 3): ('FORWARD-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 3): ('LEFT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'LEFT-DOUBLE'), (8, 3): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-FORWARD'), (1, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-LEFT'), (2, 4): ('DOUBLE-LEFT', 'DOUBLE-LEFT', 'DOUBLE-DOUBLE'), (3, 4): ('RIGHT-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (4, 4): ('RIGHT-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 4): ('RIGHT-LEFT', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (6, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'RIGHT-DOUBLE'), (8, 4): ('RIGHT-DOUBLE', 'RIGHT-DOUBLE', 'FORWARD-DOUBLE'), (0, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 5): ('DOUBLE-LEFT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 5): ('DOUBLE-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 5): ('FORWARD-LEFT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 5): ('RIGHT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 5): ('RIGHT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 6): ('DOUBLE-FORWARD', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 6): ('DOUBLE-FORWARD', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 6): ('DOUBLE-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 6): ('FORWARD-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 6): ('FORWARD-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-FORWARD'), (1, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-LEFT'), (2, 7): ('DOUBLE-RIGHT', 'DOUBLE-FORWARD', 'DOUBLE-DOUBLE'), (3, 7): ('DOUBLE-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (4, 7): ('FORWARD-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 7): ('LEFT-DOUBLE', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (6, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'DOUBLE-DOUBLE'), (7, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'RIGHT-DOUBLE'), (8, 7): ('LEFT-DOUBLE', 'FORWARD-DOUBLE', 'FORWARD-DOUBLE'), (0, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-FORWARD'), (1, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-LEFT'), (2, 8): ('DOUBLE-RIGHT', 'DOUBLE-RIGHT', 'DOUBLE-DOUBLE'), (3, 8): ('DOUBLE-RIGHT', 'FORWARD-RIGHT', 'DOUBLE-DOUBLE'), (4, 8): ('LEFT-RIGHT', 'DOUBLE-DOUBLE', 'DOUBLE-DOUBLE'), (5, 8): ('LEFT-DOUBLE', 'FORWARD-RIGHT', 'DOUBLE-DOUBLE'), (6, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'DOUBLE-DOUBLE'), (7, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'RIGHT-DOUBLE'), (8, 8): ('LEFT-DOUBLE', 'LEFT-DOUBLE', 'FORWARD-DOUBLE')}
-
-    # return lambda time, state: policyActionQuery(time, state, policy, checkin_period)
-    return policy
-
-
-def sepToState(sepX, sepY, center_state):
-    sepX = int(round(sepX/STATE_SCALE_FACTOR))
-    sepY = -int(round(sepY/STATE_SCALE_FACTOR))
-    return (center_state[0] + sepX, center_state[1] + sepY)
-
-def convert_action(action):
-    a = ACTIONS[action]
-    return (int(a[0]/STATE_SCALE_FACTOR), int(-a[1]/STATE_SCALE_FACTOR))
-
-def execute_policy(policy, center_state):
+def execute_policy(policy):
     global displacement
     displacement = (0,0)
 
     print(id()+": EXECUTING POLICY.")
 
-    for i in range(2):
+    for i in range(30):
 
         state = checkin()#(1, 4)
         print("\n"+id()+": CHECKIN",i+1," | STATE: ALONG =", state[0], "CROSS = ", state[1])
         
-        state = sepToState(state[0], state[1], center_state)
+        state = sepToState(state[0], state[1], CENTER_STATE)
 
         joint_macro_action = policy[state]
         print(id()+": CHECKIN",i+1," | JOINT MACRO ACTION", joint_macro_action)
@@ -577,6 +570,8 @@ def execute_policy(policy, center_state):
         my_time = 0
         companion_time = 0
 
+        # play_sound()
+        
         for j in range(len(joint_macro_action)):
             joint_action = joint_macro_action[j]
             print(id()+":   JOINT ACTION", joint_action)
@@ -602,44 +597,32 @@ def execute_policy(policy, center_state):
     final_state = checkin()
 
     # check reward
-    print(id()+":  RETURNING TO START")
-    drive_arc(-displacement[0], -displacement[1], -0.2)
+    # print(id()+":  RETURNING TO START")
+    # print(-displacement[0], -displacement[1])
+    # drive_arc(-displacement[0], -displacement[1], -0.2)
+    # turn_with_pid(original_yaw, 10)
     print(id()+":  COMPLETE.")
+    
+    # play_sound()
 
 
-def run_mdp():
-    maxSeparation = 6#4
-    desiredSeparation = 2
-    moveProb = 0.95#0.9
+def wait_for_policy():
+    s = rospy.wait_for_message('/mdp/policy', String).data
+    policies = jsonFriendlyToPolicy(json.loads(s))
+    return policies[0]
 
-    actions_convert = {k:convert_action(k) for k in ACTIONS}
 
-    grid, mdp, start_state = formationMDP(
-        formation1_actions=actions_convert,
-        maxSeparation = maxSeparation/STATE_SCALE_FACTOR, 
-        desiredSeparation = desiredSeparation/STATE_SCALE_FACTOR, 
-        moveProb = moveProb, 
-        wallPenalty = -10, 
-        movePenalty = 0, 
-        collidePenalty = -100, 
-        desiredStateReward=5)
+def start():
 
-    discount = math.sqrt(0.99)
-    discount_checkin = discount
-
-    centerInd = int(len(grid) / 2)
-    center_state = (centerInd, centerInd)
-
-    checkin_period = 2
-    policy = getPolicy(grid, mdp, start_state, discount, discount_checkin, checkin_period)
-
-    # initial_sep = np.array([0, -1])
-
+    print(id()+": Waiting for policy...")
+    policy = wait_for_policy()
+    print(id()+": Policy received!...")
+    
     print(id()+": Waiting for start command...")
     wait_for_start()
     print(id()+": Received start command.")
 
-    execute_policy(policy, center_state)
+    execute_policy(policy)
 
 
 
@@ -655,8 +638,9 @@ if __name__=="__main__":
 
     pub_reset = rospy.Publisher('/reset', Empty, queue_size=1)
 
-    # runFormationAnimation()
-    # run_mdp()
+    pub_sound = rospy.Publisher('/sound', Sound, queue_size=1)
+
+    # start()
 
     # if True:
     #     exit(0)
@@ -671,4 +655,4 @@ if __name__=="__main__":
     original_yaw = get_yaw()
     print(id()+": Started at yaw", original_yaw,".")
 
-    run_mdp()
+    start()
