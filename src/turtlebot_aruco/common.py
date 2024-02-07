@@ -16,11 +16,13 @@ STEP_TIME = 0.01
 #     DOUBLE_FW_RIGHT = (2, -1)
 
 ACTIONS = {
-    "DOUBLE": (4, 0), 
-    "FORWARD": (2, 0),
-    "LEFT": (2, 1),
+    "DOUBLE": (2, 0), 
+    "DOUBLELEFT": (2, 0.5),
+    "DOUBLERIGHT": (2, -0.5),
+    "FORWARD": (2, 0), 
+    "LEFT": (1, 0.5),
     # "SLIGHT_LEFT": (1, 0.5), 
-    "RIGHT": (2, -1)
+    "RIGHT": (1, -0.5)
     # "SLIGHT_RIGHT": (1, -0.5)
 }
 
@@ -33,11 +35,21 @@ GRID_SIZE = int(MAX_SEPARATION * 2 + 1)
 CENTER_INDEX = int(GRID_SIZE / 2)
 CENTER_STATE = (CENTER_INDEX, CENTER_INDEX)
 
-def sepToState(sepX, sepY, center_state):
+def sepToStateSep(sepX, sepY):
     sepX = int(round(sepX/STATE_SCALE_FACTOR))
-    sepY = -int(round(sepY/STATE_SCALE_FACTOR))
-    return (center_state[0] + sepX, center_state[1] + sepY)
 
+    # for original, robot1 being on left (positive sep) means negative Y
+    # sepY = -int(round(sepY/STATE_SCALE_FACTOR))
+    # return (center_state[0] + sepX, center_state[1] + sepY)
+
+    # for new, robot1 being on left (positive sep) means positive Y
+    # also, state is error from desired separation not the actual separation
+    sepY = int(round(sepY/STATE_SCALE_FACTOR - DESIRED_SEPARATION))
+    return sepX, sepY
+
+def sepToState(sepX, sepY, center_state):
+    sepX, sepY = sepToStateSep(sepX, sepY)
+    return (center_state[0] + sepX, center_state[1] + sepY)
 
 
 def stateTupleToStr(tup):

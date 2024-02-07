@@ -1,0 +1,768 @@
+[
+    {
+        "0-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-1": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-2": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-3": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-5": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-6": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "0-7": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-9": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-10": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-11": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "0-12": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-1": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-2": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-3": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-5": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-6": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "1-7": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-9": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-10": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-11": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "1-12": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-1": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-2": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-3": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-5": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-6": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "2-7": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-9": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-10": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-11": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "2-12": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-1": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-2": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-3": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-5": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-6": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "3-7": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-9": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-10": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-11": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "3-12": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "4-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-1": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-2": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-3": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-5": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLE-"
+        ],
+        "4-6": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "4-7": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLE-"
+        ],
+        "4-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "4-9": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "4-10": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "4-11": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "4-12": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "5-0": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "5-1": [
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "5-2": [
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "5-3": [
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "5-4": [
+            "DOUBLELEFT-RIGHT",
+            "DOUBLELEFT-DOUBLERIGHT"
+        ],
+        "5-5": [
+            "DOUBLELEFT-RIGHT"
+        ],
+        "5-6": [
+            "DOUBLE-"
+        ],
+        "5-7": [
+            "DOUBLERIGHT-LEFT"
+        ],
+        "5-8": [
+            "DOUBLERIGHT-LEFT",
+            "DOUBLERIGHT-DOUBLELEFT"
+        ],
+        "5-9": [
+            "DOUBLERIGHT-LEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "5-10": [
+            "DOUBLERIGHT-LEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "5-11": [
+            "DOUBLERIGHT-LEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "5-12": [
+            "DOUBLERIGHT-LEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "6-0": [
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "6-1": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "6-2": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "6-3": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "6-4": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "6-5": [
+            "DOUBLELEFT-DOUBLERIGHT"
+        ],
+        "6-6": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "6-7": [
+            "DOUBLERIGHT-DOUBLELEFT"
+        ],
+        "6-8": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "6-9": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "6-10": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "6-11": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "6-12": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "7-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "7-1": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "7-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "7-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-RIGHT"
+        ],
+        "7-4": [
+            "LEFT-DOUBLERIGHT",
+            "DOUBLELEFT-DOUBLERIGHT"
+        ],
+        "7-5": [
+            "LEFT-DOUBLERIGHT"
+        ],
+        "7-6": [
+            "-DOUBLE"
+        ],
+        "7-7": [
+            "RIGHT-DOUBLELEFT"
+        ],
+        "7-8": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-DOUBLELEFT"
+        ],
+        "7-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "7-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "7-11": [
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "7-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "DOUBLERIGHT-LEFT"
+        ],
+        "8-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-1": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-4": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-5": [
+            "LEFT-DOUBLERIGHT",
+            "-DOUBLE"
+        ],
+        "8-6": [
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "8-7": [
+            "RIGHT-DOUBLELEFT",
+            "-DOUBLE"
+        ],
+        "8-8": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "8-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "8-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "8-11": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "8-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "9-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-1": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-4": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-5": [
+            "LEFT-DOUBLERIGHT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-6": [
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-7": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "9-8": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "9-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "9-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "9-11": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "9-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "10-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-1": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-4": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-5": [
+            "LEFT-DOUBLERIGHT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-6": [
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-7": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "10-8": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "10-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "10-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "10-11": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "10-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "11-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-1": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-4": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-5": [
+            "LEFT-DOUBLERIGHT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-6": [
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-7": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "11-8": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "11-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "11-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "11-11": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "11-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "12-0": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-1": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-2": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-3": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-4": [
+            "LEFT-DOUBLERIGHT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-5": [
+            "LEFT-DOUBLERIGHT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-6": [
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-7": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "LEFT-DOUBLERIGHT"
+        ],
+        "12-8": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "12-9": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "12-10": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "12-11": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ],
+        "12-12": [
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT",
+            "RIGHT-DOUBLELEFT"
+        ]
+    }
+]

@@ -10,6 +10,7 @@ import os
 
 from turtlebot_aruco.mdp.formationAnimation import *
 from turtlebot_aruco.common import *
+from turtlebot_aruco.mdp_schedule.formation_schedule import formationPolicy
 
 
 def policyActionQuery(time, state, policy, checkin_period):
@@ -65,6 +66,20 @@ def run_mdp():
 
     return s
 
+def run_mdp_schedule():
+    policy = formationPolicy(gridSize=GRID_SIZE, actionScale=STATE_SCALE_FACTOR)
+
+    print("Planning complete, publishing policy.")
+
+    # print(policy)
+    s = json.dumps(policyToJsonFriendly([policy]), indent=4)
+    print(s)
+
+    with open("policy.txt", 'w') as file:
+        file.write(s)
+
+    return s
+
 
 def load_policy():
 
@@ -80,7 +95,8 @@ def load_policy():
 
 
 def sendMessage(sock, message):
-    sock.send(len(message).to_bytes(2, 'big', signed=False))
+    print("Message of length",len(message))
+    sock.send(len(message).to_bytes(8, 'big', signed=False))
     sock.send(message.encode())
 
 
@@ -114,8 +130,13 @@ if __name__=="__main__":
     port1 = rospy.get_param('~port1')
     port2 = rospy.get_param('~port2')
 
+    # mode = 'generate'
+
+    # port1 = 0
+    # port2 = 0
+
     if mode == 'generate':
-        forward(run_mdp(), port1, port2)
+        forward(run_mdp_schedule(), port1, port2)
     elif mode == 'load':
         forward(load_policy(), port1, port2)
     else:

@@ -9,7 +9,7 @@ import codecs
 HOST = "0.0.0.0"
 
 def receiveMessage(sock):
-    data = sock.recv(2)
+    data = sock.recv(8)
     # expect = int.from_bytes(data, 'little', signed=False)
     expect = int(codecs.encode(data, 'hex'), 16)
     print("Waiting for", expect, "bytes")

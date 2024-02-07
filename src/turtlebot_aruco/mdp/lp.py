@@ -12,7 +12,7 @@ import time
 
 # vS: start layer values
 # vE: end layer values. For single layer (normal value iteration), vS = vE
-def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative):
+def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor):
     if not is_negative:
         a1 = [vE[end_state] for end_state in mdp.transitions[state][action].keys()]
     else:
@@ -20,15 +20,18 @@ def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative):
     a2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys()]
     leSum = lp.scal_prod(a1, a2)
 
+    if variable_discount_factor:
+        discount_factor = discount**len(action)
+
     if not is_negative:
-        return vS[state] >= (mdp.rewards[state][action] + discount * leSum)
+        return vS[state] >= (mdp.rewards[state][action] + discount_factor * leSum)
     else:
-        return vS[state] <= -(mdp.rewards[state][action] + discount * leSum)
+        return vS[state] <= -(mdp.rewards[state][action] + discount_factor * leSum)
 
-def makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative):
-    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative) for state in mdp.states for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) if action in mdp.transitions[state]]
+def makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative, variable_discount_factor):
+    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor) for state in mdp.states for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) if action in mdp.transitions[state]]
 
-def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negative = False):
+def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negative = False, variable_discount_factor=False):
 
     time_start = time.time()
 
@@ -42,7 +45,7 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
     else:
         objective = lp.maximize(lp.v_sum)
 
-    lp.add_constraints(makeConstraintsList(mdp, discount, lp, v, v, restricted_action_set, is_negative))
+    lp.add_constraints(makeConstraintsList(mdp, discount, lp, v, v, restricted_action_set, is_negative, variable_discount_factor))
     
     time_elapsed = (time.time() - time_start)
          
@@ -69,28 +72,39 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
         values = {state: -values[state] for state in values}
 
     policy = {}
+    q_values = {}
+
     for state in mdp.states:
         best_action = None
         max_expected = None
+
+        q_values[state] = {}
         
         action_set = mdp.actions if restricted_action_set is None else restricted_action_set[state]
         for action in action_set:
+            if variable_discount_factor:
+                discount_factor = discount**len(action)
+            else:
+                discount_factor = discount
+
             if action in mdp.transitions[state]:
                 expected_value = mdp.rewards[state][action]
                 for end_state in mdp.transitions[state][action].keys():
                     prob = mdp.transitions[state][action][end_state]
-                    expected_value += discount * prob * values[end_state]
+                    expected_value += discount_factor * prob * values[end_state]
 
                 if max_expected is None or expected_value > max_expected:
                     best_action = action
                     max_expected = expected_value
+
+                q_values[state][action] = expected_value
 
         if max_expected is None:
             max_expected = 0
         
         policy[state] = best_action
 
-    return policy, values
+    return policy, values, q_values
 
 def linearProgrammingSolveMultiLayer(mdps, discounts, restricted_action_set = None, is_negative = False):
 

@@ -557,12 +557,16 @@ def execute_policy(policy):
 
     print(id()+": EXECUTING POLICY.")
 
-    for i in range(30):
+    for i in range(40):
 
         state = checkin()#(1, 4)
         print("\n"+id()+": CHECKIN",i+1," | STATE: ALONG =", state[0], "CROSS = ", state[1])
+
+        sepX, sepY = sepToStateSep(state[0], state[1])
+        print("\n"+id()+": CHECKIN",i+1," | T-SEP: ALONG =", sepX, "CROSS = ", sepY)
         
         state = sepToState(state[0], state[1], CENTER_STATE)
+        print("\n"+id()+": CHECKIN",i+1," | WORLD: X =", state[0], "Y = ", state[1])
 
         joint_macro_action = policy[state]
         print(id()+": CHECKIN",i+1," | JOINT MACRO ACTION", joint_macro_action)
