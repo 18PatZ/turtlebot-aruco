@@ -1,3 +1,6 @@
+output/
+policy.json
+
 devel/
 logs/
 build/

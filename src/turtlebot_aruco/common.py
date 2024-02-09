@@ -47,9 +47,27 @@ def sepToStateSep(sepX, sepY):
     sepY = int(round(sepY/STATE_SCALE_FACTOR - DESIRED_SEPARATION))
     return sepX, sepY
 
+
+def ensureBounds(state):
+    x = state[0]
+    y = state[1]
+    
+    if x < 0:
+        x = 0
+    elif x >= GRID_SIZE:
+        x = GRID_SIZE-1
+    
+    if y < 0:
+        y = 0
+    elif y >= GRID_SIZE:
+        y = GRID_SIZE-1
+
+    return (x, y)
+
+
 def sepToState(sepX, sepY, center_state):
     sepX, sepY = sepToStateSep(sepX, sepY)
-    return (center_state[0] + sepX, center_state[1] + sepY)
+    return ensureBounds((center_state[0] + sepX, center_state[1] + sepY))
 
 
 def stateTupleToStr(tup):

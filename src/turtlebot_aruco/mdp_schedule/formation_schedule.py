@@ -17,6 +17,7 @@ import collections
 
 import time
 import math
+import os
 
 
 def one_step_two_rover_mdp(
@@ -52,13 +53,25 @@ def one_step_two_rover_mdp(
     
     return MDP(states=states, actions=actions, transitions=transitions, rewards=rewards,terminal_states=terminal_states)
 
+def addDict(d, key, value):
+    if key in d:
+        d[key] += value
+    else:
+        d[key] = value
 
 def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy, 
                  actionScale,
                  _action_reward, _motion_reward):
+        
     # actions = [(along_track, cross_track) for along_track in (-1, 0, 1) for cross_track in (-2, -1, 0, 1, 2)]
     actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
+    a = int(1.0/actionScale)
 
+    correction_inaccuracy = 0.02
+    baseline_inaccuracy = 0.025
+
+    _action_reward = -1
+    _motion_reward = -.5
 
     transitions = {}
     action_rewards = {}
@@ -68,23 +81,25 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         
         action_rewards[action] = _action_reward
         if action[0] != 0:
-            dir = math.copysign(1, action[0])
-            outcomes[(action[0]+dir, action[1])] = correction_inaccuracy
-            outcomes[(action[0]-dir, action[1])] = correction_inaccuracy
+            addDict(outcomes, (action[0]+a, action[1]), correction_inaccuracy)
+            addDict(outcomes, (action[0]-a, action[1]), correction_inaccuracy)
+            addDict(outcomes, (action[0], a), correction_inaccuracy)
+            addDict(outcomes, (action[0], -a), correction_inaccuracy)
             probability_mass -= 2*correction_inaccuracy
             action_rewards[action] += _motion_reward
             
         if action[1] != 0:
-            dir = math.copysign(1, action[1])
-            outcomes[(action[0], action[1]+dir)] = correction_inaccuracy
-            outcomes[(action[0], action[1]-dir)] = correction_inaccuracy
+            addDict(outcomes, (action[0], action[1]+a), correction_inaccuracy)
+            addDict(outcomes, (action[0], action[1]-a), correction_inaccuracy)
+            addDict(outcomes, (a, action[1]), correction_inaccuracy)
+            addDict(outcomes, (-a, action[1]), correction_inaccuracy)
             probability_mass -= 2*correction_inaccuracy
             action_rewards[action] += _motion_reward
             
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 if dx !=0 or dy !=0:
-                    outcomes[(action[0]+dx, action[1]+dy)] = baseline_inaccuracy
+                    addDict(outcomes, (action[0]+dx*a, action[1]+dy*a), baseline_inaccuracy)
                     probability_mass -= baseline_inaccuracy
         outcomes[action] = probability_mass
 
@@ -102,7 +117,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
 
     state_rewards = {}
     for state in states:
-        state_rewards[state] = -(abs(state[0]-median_state[0]) + abs(state[1]-median_state[1]))
+        state_rewards[state] = -(abs(state[0]-median_state[0])**2 + abs(state[1]-median_state[1])**2)
 
     terminal_states = {}
 
@@ -112,17 +127,18 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         actions_and_displacements=transitions,
         action_rewards=action_rewards,
         state_rewards=state_rewards,
-        out_of_bounds_reward=-1,
-
+        out_of_bounds_reward=-2000#-1,
     )
     mdp.terminals = terminal_states
 
     return mdp
 
 
-def convertAction(action):
+def convertAction(actionScale, action):
     bot_left = ""
     bot_right = ""
+
+    action = (int(action[0] * actionScale), int(action[1] * actionScale))
 
     # left is positive, therefore +1 means increase distance
     if action[1] == 1:
@@ -134,7 +150,7 @@ def convertAction(action):
     elif action[1] == 0:
         if action[0] == 1:
             bot_right = "FORWARD"
-        else:
+        elif action[0] == -1:
             bot_left = "FORWARD"
 
 
@@ -147,8 +163,8 @@ def convertAction(action):
     return bot_left + "-" + bot_right
 
 
-def convertPolicy(policy):
-    new_policy = {k: tuple([convertAction(a) for a in v]) for k, v in policy.items()}
+def convertPolicy(actionScale, policy):
+    new_policy = {k: tuple([convertAction(actionScale, a) for a in v]) for k, v in policy.items()}
     return new_policy
 
 
@@ -160,7 +176,7 @@ def formationPolicy(gridSize = 13, actionScale = 1,
         gridSize = gridSize,
         correction_inaccuracy = 0.02,
         baseline_inaccuracy = 0.025,
-        actionScale = 1,
+        actionScale = actionScale,
         _action_reward = -1,
         _motion_reward = -.5
     )
@@ -244,11 +260,16 @@ def formationPolicy(gridSize = 13, actionScale = 1,
     
     print(policy)
 
-    conv_policy = convertPolicy(policy)
+    conv_policy = convertPolicy(actionScale, policy)
     print("converted policy:")
     print(conv_policy)
 
     if draw:
+
+        print("Drawing...")
+
+        if not os.path.exists("output"):
+            os.makedirs("output")
 
         policy_for_plotting = {k: (v, (-1,)) for k, v in policy.items()}
         fig = plot_grid_world_mdp(policy_for_plotting, state_values, policy_linewidth=.5)
@@ -261,5 +282,7 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
         _f = plot_grid_world_blind_drive(mdp, policy_for_plotting, policy_length)
         _f.savefig(f"output/len{checkin_reward}.png")
+
+        print("Drawing done.")
 
     return conv_policy

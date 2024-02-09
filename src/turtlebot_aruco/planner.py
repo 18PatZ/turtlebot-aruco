@@ -61,13 +61,14 @@ def run_mdp():
     s = json.dumps(policyToJsonFriendly([policy]), indent=4)
     print(s)
 
-    with open("policy.txt", 'w') as file:
+    with open("policy.json", 'w') as file:
         file.write(s)
 
     return s
 
 def run_mdp_schedule():
-    policy = formationPolicy(gridSize=GRID_SIZE, actionScale=STATE_SCALE_FACTOR)
+    policy = formationPolicy(gridSize=GRID_SIZE, 
+            actionScale=STATE_SCALE_FACTOR, checkin_reward=-1.0, draw=True)
 
     print("Planning complete, publishing policy.")
 
@@ -75,7 +76,7 @@ def run_mdp_schedule():
     s = json.dumps(policyToJsonFriendly([policy]), indent=4)
     print(s)
 
-    with open("policy.txt", 'w') as file:
+    with open("policy.json", 'w') as file:
         file.write(s)
 
     return s
@@ -83,11 +84,11 @@ def run_mdp_schedule():
 
 def load_policy():
 
-    if not os.path.isfile("policy.txt"):
+    if not os.path.isfile("policy.json"):
         print("Policy not generated yet.")
         return None
 
-    with open("policy.txt", 'r') as file:
+    with open("policy.json", 'r') as file:
         s = file.read()
         return s
 

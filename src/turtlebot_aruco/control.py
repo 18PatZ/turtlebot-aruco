@@ -94,7 +94,7 @@ def turn_to_marker(direction):
     print(id()+": Camera engaged. Beginning sweep...")
 
     search_range = 90 * math.pi / 180
-    search_speed = 0.1 if agent_id == 0 else 0.2
+    search_speed = 0.1 if agent_id == 0 else 0.15
 
     stage = 0
     t = 0
@@ -555,6 +555,9 @@ def execute_policy(policy):
     global displacement
     displacement = (0,0)
 
+    execution_start = time.time()
+    to_write = []
+
     print(id()+": EXECUTING POLICY.")
 
     for i in range(40):
@@ -570,6 +573,14 @@ def execute_policy(policy):
 
         joint_macro_action = policy[state]
         print(id()+": CHECKIN",i+1," | JOINT MACRO ACTION", joint_macro_action)
+
+        t = time.time() - execution_start
+        to_write.append({t: {
+            "State": [state[0], state[1]],
+            "Action": list(joint_macro_action)
+            }})
+        with open("states.json", 'w') as file:
+            file.write(json.dumps(to_write, indent=4))
 
         my_time = 0
         companion_time = 0
