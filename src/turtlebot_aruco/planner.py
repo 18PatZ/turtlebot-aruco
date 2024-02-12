@@ -68,7 +68,8 @@ def run_mdp():
 
 def run_mdp_schedule():
     policy = formationPolicy(gridSize=GRID_SIZE, 
-            actionScale=STATE_SCALE_FACTOR, checkin_reward=-1.0, draw=True)
+            actionScale=STATE_SCALE_FACTOR, 
+            checkin_reward=-1.0, transition_alpha=0.5, draw=True)
 
     print("Planning complete, publishing policy.")
 
@@ -80,6 +81,25 @@ def run_mdp_schedule():
         file.write(s)
 
     return s
+
+
+
+def run_test():
+    for c in np.linspace(0, 2, num=5):
+        for t in np.linspace(0, 1, num=5):
+            print(f"CHECKIN {c} TRANSITION {t}")
+            formationPolicy(gridSize=GRID_SIZE, 
+                    actionScale=STATE_SCALE_FACTOR, 
+                    checkin_reward=-c, transition_alpha=t, draw=True)
+
+    # for c in np.linspace(0, 2, num=5):
+    #     formationPolicy(gridSize=GRID_SIZE, 
+    #                     actionScale=STATE_SCALE_FACTOR, 
+    #                     checkin_reward=-c, transition_alpha=0.0, draw=True)
+    # formationPolicy(gridSize=GRID_SIZE, 
+    #     actionScale=STATE_SCALE_FACTOR, 
+    #     checkin_reward=-2.0, transition_alpha=0.5, draw=True)
+
 
 
 def load_policy():
@@ -124,21 +144,22 @@ def forward(plan, port1, port2):
 
 
 if __name__=="__main__":
-    rospy.init_node('turtlebot_mdp_planner')
+    run_test()
+    # rospy.init_node('turtlebot_mdp_planner')
 
-    mode = rospy.get_param('~mode')
+    # mode = rospy.get_param('~mode')
     
-    port1 = rospy.get_param('~port1')
-    port2 = rospy.get_param('~port2')
+    # port1 = rospy.get_param('~port1')
+    # port2 = rospy.get_param('~port2')
 
-    # mode = 'generate'
+    # # mode = 'generate'
 
-    # port1 = 0
-    # port2 = 0
+    # # port1 = 0
+    # # port2 = 0
 
-    if mode == 'generate':
-        forward(run_mdp_schedule(), port1, port2)
-    elif mode == 'load':
-        forward(load_policy(), port1, port2)
-    else:
-        print("Unknown mode.")
+    # if mode == 'generate':
+    #     forward(run_mdp_schedule(), port1, port2)
+    # elif mode == 'load':
+    #     forward(load_policy(), port1, port2)
+    # else:
+    #     print("Unknown mode.")

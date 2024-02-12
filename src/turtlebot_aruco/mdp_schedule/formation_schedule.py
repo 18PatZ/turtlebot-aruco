@@ -67,33 +67,49 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
     actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
     a = int(1.0/actionScale)
 
-    correction_inaccuracy = 0.02
-    baseline_inaccuracy = 0.025
+    # correction_inaccuracy = 0.025 / 2
+    # baseline_inaccuracy = 0.025 / 2
 
-    _action_reward = -1
-    _motion_reward = -.5
+    # _action_reward = -1
+    # _motion_reward = -.5
 
     transitions = {}
     action_rewards = {}
     for action in actions:
         outcomes = {}
         probability_mass = 1.
+
+        c = correction_inaccuracy
+        if action[0] != 0 and action[1] != 0:
+            c /= 2
         
         action_rewards[action] = _action_reward
         if action[0] != 0:
-            addDict(outcomes, (action[0]+a, action[1]), correction_inaccuracy)
-            addDict(outcomes, (action[0]-a, action[1]), correction_inaccuracy)
-            addDict(outcomes, (action[0], a), correction_inaccuracy)
-            addDict(outcomes, (action[0], -a), correction_inaccuracy)
-            probability_mass -= 2*correction_inaccuracy
+            # addDict(outcomes, (action[0]+a, action[1]), correction_inaccuracy)
+            # addDict(outcomes, (action[0]-a, action[1]), correction_inaccuracy)
+            # addDict(outcomes, (action[0], a), correction_inaccuracy)
+            # addDict(outcomes, (action[0], -a), correction_inaccuracy)
+            # addDict(outcomes, (action[0]*2, a), correction_inaccuracy)
+            # addDict(outcomes, (action[0]*2, -a), correction_inaccuracy)
+            # probability_mass -= 4*correction_inaccuracy
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    addDict(outcomes, (action[0]+dx, dy), c)
+                    probability_mass -= c
             action_rewards[action] += _motion_reward
             
         if action[1] != 0:
-            addDict(outcomes, (action[0], action[1]+a), correction_inaccuracy)
-            addDict(outcomes, (action[0], action[1]-a), correction_inaccuracy)
-            addDict(outcomes, (a, action[1]), correction_inaccuracy)
-            addDict(outcomes, (-a, action[1]), correction_inaccuracy)
-            probability_mass -= 2*correction_inaccuracy
+            # addDict(outcomes, (action[0], action[1]+a), correction_inaccuracy)
+            # addDict(outcomes, (action[0], action[1]-a), correction_inaccuracy)
+            # addDict(outcomes, (a, action[1]), correction_inaccuracy)
+            # addDict(outcomes, (-a, action[1]), correction_inaccuracy)
+            # addDict(outcomes, (a, action[1]*2), correction_inaccuracy)
+            # addDict(outcomes, (-a, action[1]*2), correction_inaccuracy)
+            # probability_mass -= 4*correction_inaccuracy
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    addDict(outcomes, (dx, action[1]+dy), c)
+                    probability_mass -= c
             action_rewards[action] += _motion_reward
             
         for dx in (-1, 0, 1):
@@ -117,7 +133,12 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
 
     state_rewards = {}
     for state in states:
-        state_rewards[state] = -(abs(state[0]-median_state[0])**2 + abs(state[1]-median_state[1])**2)
+        r = -(abs(state[0]-median_state[0])**2 + 2*abs(state[1]-median_state[1])**2)
+        # if state[1]-median_state[1] == -1 or state[1]-median_state[1] == -3:
+        #     r += -80
+        # if state[1]-median_state[1] == -2:
+        #     r += -160
+        state_rewards[state] = r
 
     terminal_states = {}
 
@@ -127,7 +148,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         actions_and_displacements=transitions,
         action_rewards=action_rewards,
         state_rewards=state_rewards,
-        out_of_bounds_reward=-2000#-1,
+        out_of_bounds_reward=-2#-2000#-1,
     )
     mdp.terminals = terminal_states
 
@@ -168,14 +189,50 @@ def convertPolicy(actionScale, policy):
     return new_policy
 
 
+def getIndifference(values):
+    policyBest = {}
+    policySecond = {}
+    indifference = {}
+
+    for state in values:
+        best_action = None
+        second_best_action = None
+        
+        for action in values[state]:
+            expected_value = values[state][action]
+            if best_action is None or expected_value > values[state][best_action]:
+                if best_action is not None and len(action) != len(best_action):
+                    second_best_action = best_action
+                best_action = action
+            elif len(action) != len(best_action): # different length action
+                if second_best_action is None or expected_value > values[state][second_best_action]:
+                    second_best_action = action
+        
+        policyBest[state] = best_action
+        policySecond[state] = second_best_action
+
+        indifference[state] = values[state][best_action] - values[state][second_best_action]
+
+    return policyBest, policySecond, indifference
+
+
+def policyLen(policy):
+    policy_length = {
+        state: len(action) for state, action in policy.items()
+    }
+    return policy_length
+
 
 def formationPolicy(gridSize = 13, actionScale = 1, 
-                    checkin_reward = -0.2, draw = False):
+                    checkin_reward = -0.2, transition_alpha = 0.5, draw = False):
+    
+    correction_inaccuracy = 0.025 * transition_alpha# / 2
+    baseline_inaccuracy = 0.025 * transition_alpha# / 2
     
     mdp = formationMDP(
         gridSize = gridSize,
-        correction_inaccuracy = 0.02,
-        baseline_inaccuracy = 0.025,
+        correction_inaccuracy = correction_inaccuracy,
+        baseline_inaccuracy = baseline_inaccuracy,
         actionScale = actionScale,
         _action_reward = -1,
         _motion_reward = -.5
@@ -271,17 +328,47 @@ def formationPolicy(gridSize = 13, actionScale = 1,
         if not os.path.exists("output"):
             os.makedirs("output")
 
+        vmin=1
+        vmax=max_obs_time_horizon+1
+
+
+        policyBest, policySecond, indifference = getIndifference(values)
+
         policy_for_plotting = {k: (v, (-1,)) for k, v in policy.items()}
         fig = plot_grid_world_mdp(policy_for_plotting, state_values, policy_linewidth=.5)
         fig.set_size_inches(10.5, 10.5)
-        fig.savefig(f"output/pol{checkin_reward}.png")
+        fig.savefig(f"output/C{checkin_reward}_T{transition_alpha}_POL.png")
 
-        policy_length = {
-            state: len(action) for state, action in policy.items()
-        }
+        _f = plot_grid_world_blind_drive(mdp, policy_for_plotting, policyLen(policy), vmin=vmin, vmax=vmax)
+        _f.savefig(f"output/C{checkin_reward}_T{transition_alpha}_LEN.png")
 
-        _f = plot_grid_world_blind_drive(mdp, policy_for_plotting, policy_length)
-        _f.savefig(f"output/len{checkin_reward}.png")
+
+
+        # p1 = {k: (v, (-1,)) for k, v in policyBest.items()}
+        # fig = plot_grid_world_mdp(p1, {k: v[policyBest[k]] for k, v in values.items()}, policy_linewidth=.5, plot_colorbar=True)
+        # fig.set_size_inches(10.5, 10.5)
+        # fig.savefig(f"output/C{checkin_reward}_T{transition_alpha}_POL_A.png")
+
+        # _f = plot_grid_world_blind_drive(mdp, p1, policyLen(policyBest), vmin=vmin, vmax=vmax)
+        # _f.savefig(f"output/C{checkin_reward}_T{transition_alpha}_LEN_A.png")
+
+
+        # p2 = {k: (v, (-1,)) for k, v in policySecond.items()}
+        # fig = plot_grid_world_mdp(p2, {k: v[policySecond[k]] for k, v in values.items()}, policy_linewidth=.5, plot_colorbar=True)
+        # fig.set_size_inches(10.5, 10.5)
+        # fig.savefig(f"output/C{checkin_reward}_T{transition_alpha}_POL_B.png")
+
+        # _f = plot_grid_world_blind_drive(mdp, p2, policyLen(policySecond), vmin=vmin, vmax=vmax)
+        # _f.savefig(f"output/C{checkin_reward}_T{transition_alpha}_LEN_B.png")
+
+        
+        indiff_vmax = None
+        if max(indifference.values()) <= 1.0:
+            indiff_vmax = 1.0
+        
+        fig = plot_grid_world_mdp(policy_for_plotting, indifference, policy_linewidth=.5, plot_colorbar=True, vmin=0, vmax=indiff_vmax)
+        fig.set_size_inches(10.5, 10.5)
+        fig.savefig(f"output/C{checkin_reward}_T{transition_alpha}_INDIFF.png")
 
         print("Drawing done.")
 

@@ -461,7 +461,7 @@ def plot_next_state_distribution(one_step_actions_and_transitions, actions_betwe
     plt.setp(ax, xlim=[-2*actions_between_checkins, 2*actions_between_checkins+1], ylim=[-2*actions_between_checkins, 2*actions_between_checkins+1])
     return fig
 
-def plot_grid_world_blind_drive(mdp, policy, how_far):
+def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None):
     
     fig, ax = plt.subplots()
     
@@ -487,7 +487,7 @@ def plot_grid_world_blind_drive(mdp, policy, how_far):
     for state, dist in how_far.items():
         data[state[1],state[0]] = dist
         
-    im = ax.imshow(data,cmap='cividis')
+    im = ax.imshow(data,cmap='cividis', vmin=vmin, vmax=vmax)
         
 #     for state, action in policy.items():
 #         print(action)

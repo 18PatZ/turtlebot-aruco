@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 TILE_SIZE = 0.2286
-STATE_SCALE_FACTOR = 0.5
+STATE_SCALE_FACTOR = 1#0.5
 EXECUTION_SPEED = 0.1
 
 LIN_VEL_STEP_SIZE = 0.01
@@ -51,7 +51,7 @@ def sepToStateSep(sepX, sepY):
 def ensureBounds(state):
     x = state[0]
     y = state[1]
-    
+
     if x < 0:
         x = 0
     elif x >= GRID_SIZE:
