@@ -29,6 +29,8 @@ original_yaw = None
 sub = None
 agent_id = None
 
+yaw_offset = 0
+
 displacement = (0,0)
 
 
@@ -74,9 +76,12 @@ def rotate_vec(vec, ang):
     return rot_mat.dot(vec)
 
 def turn_to_marker(direction):
+    global yaw_offset
     global found_marker
     found_marker = None
     # start = time.time()
+
+    calib_original_yaw = original_yaw + yaw_offset
 
     print(id()+": Turning towards believed position of companion...")
     # turn_with_pid(original_yaw + direction * 90, 5)
@@ -125,7 +130,7 @@ def turn_to_marker(direction):
     print(id()+": Marker is at", target)
 
     vec = np.array([t.x, t.z]) # ignore y since its vertical
-    heading_diff = ang_diff(current_yaw, original_yaw)
+    heading_diff = ang_diff(current_yaw, calib_original_yaw)
     print(id()+": Robot heading is", heading_diff, "degrees off forward")
 
     vec = rotate_vec(vec, heading_diff * math.pi/180) # positive angle = rotate counterclockwise
@@ -155,14 +160,14 @@ def turn_to_marker(direction):
     current_yaw = get_yaw() # also serves purpose of blocking until calibration finished
     print(id()+": Re-calibrated gyro states current yaw as", current_yaw)
 
-    print(id()+": Commanding PID to turn back to original yaw", original_yaw)
-    pub_pid_yaw.publish(original_yaw)
+    print(id()+": Commanding PID to turn back to original yaw", calib_original_yaw)
+    pub_pid_yaw.publish(calib_original_yaw)
     pub_pid_enabled.publish(True)
 
     turn_start = time.time()
-    time.sleep(3)
+    time.sleep(4)
 
-    while abs(ang_diff(original_yaw, get_yaw())) > 2 and time.time()-turn_start < 60:#5:
+    while abs(ang_diff(calib_original_yaw, get_yaw())) > 2 and time.time()-turn_start < 60:#5:
         # print(id()+": Angle to target:", ang_diff(original_yaw, get_yaw()))
         time.sleep(0.1)
 
@@ -179,8 +184,10 @@ def turn_to_marker(direction):
     # time.sleep(remaining_time)
     sync_udp()
     
-    print(id()+": Check-in complete. Current yaw", get_yaw(), "vs original", original_yaw)
+    print(id()+": Check-in complete. Current yaw", get_yaw(), "vs calib original", calib_original_yaw, "vs original", original_yaw)
     found_marker = None
+
+    yaw_offset += 1.5
 
     return state
 

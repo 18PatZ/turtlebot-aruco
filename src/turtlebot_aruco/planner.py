@@ -67,9 +67,9 @@ def run_mdp():
     return s
 
 def run_mdp_schedule():
-    policy = formationPolicy(gridSize=GRID_SIZE, 
+    policy, policy_raw = formationPolicy(gridSize=GRID_SIZE, 
             actionScale=STATE_SCALE_FACTOR, 
-            checkin_reward=-1.0, transition_alpha=0.5, draw=True)
+            checkin_reward=-1.5, transition_alpha=0.75, draw=True)
 
     print("Planning complete, publishing policy.")
 
@@ -77,8 +77,12 @@ def run_mdp_schedule():
     s = json.dumps(policyToJsonFriendly([policy]), indent=4)
     print(s)
 
+    s2 = json.dumps(policyToJsonFriendly2([policy_raw]), indent=4)
+
     with open("policy.json", 'w') as file:
         file.write(s)
+    with open("policy-raw.json", 'w') as file:
+        file.write(s2)
 
     return s
 
@@ -144,22 +148,23 @@ def forward(plan, port1, port2):
 
 
 if __name__=="__main__":
-    run_test()
-    # rospy.init_node('turtlebot_mdp_planner')
-
-    # mode = rospy.get_param('~mode')
+    # run_test()
     
-    # port1 = rospy.get_param('~port1')
-    # port2 = rospy.get_param('~port2')
+    rospy.init_node('turtlebot_mdp_planner')
 
-    # # mode = 'generate'
+    mode = rospy.get_param('~mode')
+    
+    port1 = rospy.get_param('~port1')
+    port2 = rospy.get_param('~port2')
 
-    # # port1 = 0
-    # # port2 = 0
+    # mode = 'generate'
 
-    # if mode == 'generate':
-    #     forward(run_mdp_schedule(), port1, port2)
-    # elif mode == 'load':
-    #     forward(load_policy(), port1, port2)
-    # else:
-    #     print("Unknown mode.")
+    # port1 = 0
+    # port2 = 0
+
+    if mode == 'generate':
+        forward(run_mdp_schedule(), port1, port2)
+    elif mode == 'load':
+        forward(load_policy(), port1, port2)
+    else:
+        print("Unknown mode.")

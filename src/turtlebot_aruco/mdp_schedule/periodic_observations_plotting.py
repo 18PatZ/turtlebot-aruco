@@ -437,7 +437,7 @@ def plot_next_state_distribution(one_step_actions_and_transitions, actions_betwe
 
         # Plot the distribution of future states
         for next_state, next_probability in next_state_distribution.items():
-            patches.append(mpatches.Rectangle(next_state, 1, 1, color=cmap(next_probability)))
+            patches.append(mpatches.Rectangle(next_state, 1, 1, color=cmap(next_probability*10)))
         # Plot the policy
         full_intended_action = composite_action[0]  # This is a list of tuples
         
@@ -461,7 +461,7 @@ def plot_next_state_distribution(one_step_actions_and_transitions, actions_betwe
     plt.setp(ax, xlim=[-2*actions_between_checkins, 2*actions_between_checkins+1], ylim=[-2*actions_between_checkins, 2*actions_between_checkins+1])
     return fig
 
-def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None):
+def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, state_highlight=None):
     
     fig, ax = plt.subplots()
     
@@ -496,9 +496,25 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None):
 #             state[1],
 #             action[0]*.9,
 #             action[1]*.9,))
-        
+    
     policy_plt = plot_grid_world_policy(policy, x_offset=0., y_offset=0.)
     patches += policy_plt
+
+    if state_highlight is not None:
+        pos = (state_highlight[0]-0.5,state_highlight[1]-0.5)
+        patches.append(mpatches.Rectangle(pos, width=1, height=1, color="r", fill=True))
+        
+        action = policy[state_highlight]
+        x_offset = 0#.5
+        y_offset = 0#.5
+        linewidth=2
+        linecolor = "r"
+        if type(action[1]) is tuple and type(action[0]) is tuple: #Multi-step MDP
+            full_intended_action = action[0]  # This is a list of tuples
+            
+            pos = (state_highlight[0]+x_offset,state_highlight[1]+y_offset)
+            patches += plot_multi_step_action(start_state=pos, full_intended_action=full_intended_action, linewidth=linewidth, color=linecolor)
+        
     
         
     for patch in patches:

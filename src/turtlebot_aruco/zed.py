@@ -11,6 +11,7 @@ from turtlebot_aruco.msg import Aruco
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
+import os
 import time
 
 import numpy as np
@@ -83,6 +84,11 @@ class TurtlebotArucoZed:
         aruco_msg = Aruco(has_marker, r, t, None)
         self.pub.publish(aruco_msg)
         self.pub2.publish(img_msg)
+
+        if not os.path.exists("footage"):
+            os.makedirs("footage")
+        m = int(time.time() * 1000)
+        cv2.imwrite(f"footage/{m}.jpg", img)
 
 
     def subscribe_zed(self):

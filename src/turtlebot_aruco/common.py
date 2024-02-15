@@ -19,7 +19,7 @@ ACTIONS = {
     "DOUBLE": (2, 0), 
     "DOUBLELEFT": (2, 0.5),
     "DOUBLERIGHT": (2, -0.5),
-    "FORWARD": (2, 0), 
+    "FORWARD": (1, 0), 
     "LEFT": (1, 0.5),
     # "SLIGHT_LEFT": (1, 0.5), 
     "RIGHT": (1, -0.5)
@@ -28,7 +28,7 @@ ACTIONS = {
 
 
 MAX_SEPARATION = 6 / STATE_SCALE_FACTOR
-DESIRED_SEPARATION = 2 / STATE_SCALE_FACTOR
+DESIRED_SEPARATION = 3.5 / STATE_SCALE_FACTOR
 MOVE_FORWARD_PROBABILITY = 0.95#0.9
 
 GRID_SIZE = int(MAX_SEPARATION * 2 + 1)
@@ -80,7 +80,20 @@ def strToStateTuple(stateStr):
 def policyToJsonFriendly(policies):
     return [{stateTupleToStr(state): list(policy[state]) for state in policy} for policy in policies]
 
+
 def jsonFriendlyToPolicy(policies):
     # return {strToStateTuple(state): tuple(policy[state]) for state in policy}
     return [{strToStateTuple(state): tuple(policy[state]) for state in policy} for policy in policies]
     # return [{strToStateTuple(state): policy[state] for state in policy} for policy in policies]
+
+
+
+def actionSeqToJsonFriendly(action_seq):
+    return [list(a) for a in action_seq]
+def jsonFriendlyToActionSeq(action_seq):
+    return tuple([tuple(a) for a in action_seq])
+
+def policyToJsonFriendly2(policies):
+    return [{stateTupleToStr(state): actionSeqToJsonFriendly(policy[state]) for state in policy} for policy in policies]
+def jsonFriendlyToPolicy2(policies):
+    return [{strToStateTuple(state): jsonFriendlyToActionSeq(policy[state]) for state in policy} for policy in policies]

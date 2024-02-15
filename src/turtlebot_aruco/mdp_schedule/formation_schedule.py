@@ -372,4 +372,4 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
         print("Drawing done.")
 
-    return conv_policy
+    return conv_policy, policy
