@@ -461,9 +461,11 @@ def plot_next_state_distribution(one_step_actions_and_transitions, actions_betwe
     plt.setp(ax, xlim=[-2*actions_between_checkins, 2*actions_between_checkins+1], ylim=[-2*actions_between_checkins, 2*actions_between_checkins+1])
     return fig
 
-def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, state_highlight=None):
+def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, state_highlight=None, ax=None, legend=True):
     
-    fig, ax = plt.subplots()
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots()
     
     x_min = float("inf")
     x_max = -float("inf")
@@ -487,7 +489,9 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
     for state, dist in how_far.items():
         data[state[1],state[0]] = dist
         
-    im = ax.imshow(data,cmap='cividis', vmin=vmin, vmax=vmax)
+    # im = ax.imshow(data,cmap='cividis', vmin=vmin, vmax=vmax)
+    cmap = plt.get_cmap('cividis', vmax-vmin + 1)
+    im = ax.imshow(data,cmap=cmap, vmin=vmin, vmax=vmax)
         
 #     for state, action in policy.items():
 #         print(action)
@@ -521,9 +525,22 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
         ax.add_patch(patch)
     ax.set_xlim(x_min, x_max+1)
     ax.set_ylim(y_min, y_max+1)
-    ax.figure.colorbar(im)
+    # ax.figure.colorbar(im)
+    mat = plt.matshow(data, cmap=cmap, vmin=vmin - 0.5, 
+                      vmax=vmax + 0.5)
+    
+    ax.tick_params(left=False, bottom=False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.set(yticklabels=[])
+    ax.set(xticklabels=[])
+
+    if legend:
+        ax.figure.colorbar(mat, ticks=np.arange(vmin, vmax + 1))
     ax.axis('equal')
-    plt.axis('off')
+    ax.axis('off')
         
     return fig
 

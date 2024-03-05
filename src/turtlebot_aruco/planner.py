@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-import rospy 
-from std_msgs.msg import String
+# import rospy 
+# from std_msgs.msg import String
+import numpy as np
 import math
 import json
 
 import socket
 import os
 
-from turtlebot_aruco.mdp.formationAnimation import *
+# from turtlebot_aruco.mdp.formationAnimation import *
 from turtlebot_aruco.common import *
 from turtlebot_aruco.mdp_schedule.formation_schedule import formationPolicy
 
@@ -89,12 +90,25 @@ def run_mdp_schedule():
 
 
 def run_test():
-    for c in np.linspace(0, 2, num=5):
-        for t in np.linspace(0, 1, num=5):
-            print(f"CHECKIN {c} TRANSITION {t}")
-            formationPolicy(gridSize=GRID_SIZE, 
-                    actionScale=STATE_SCALE_FACTOR, 
-                    checkin_reward=-c, transition_alpha=t, draw=True)
+    c = 1.0
+    t = 0.25
+    policy, policy_raw = formationPolicy(gridSize=GRID_SIZE, 
+        actionScale=STATE_SCALE_FACTOR, 
+        checkin_reward=-c, transition_alpha=t, draw=True)
+    
+    s2 = json.dumps(policyToJsonFriendly2([policy_raw]), indent=4)
+    with open(f"output/C-{c}_T{t}_policy-raw.json", 'w') as file:
+        file.write(s2)
+    # for c in np.linspace(0, 2, num=5):
+    #     for t in np.linspace(0, 1, num=5):
+    #         print(f"CHECKIN {c} TRANSITION {t}")
+    #         policy, policy_raw = formationPolicy(gridSize=GRID_SIZE, 
+    #                 actionScale=STATE_SCALE_FACTOR, 
+    #                 checkin_reward=-c, transition_alpha=t, draw=False)
+            
+    #         s2 = json.dumps(policyToJsonFriendly2([policy_raw]), indent=4)
+    #         with open(f"output/C-{c}_T{t}_policy-raw.json", 'w') as file:
+    #             file.write(s2)
 
     # for c in np.linspace(0, 2, num=5):
     #     formationPolicy(gridSize=GRID_SIZE, 
@@ -148,23 +162,23 @@ def forward(plan, port1, port2):
 
 
 if __name__=="__main__":
-    # run_test()
+    run_test()
     
-    rospy.init_node('turtlebot_mdp_planner')
+    # rospy.init_node('turtlebot_mdp_planner')
 
-    mode = rospy.get_param('~mode')
+    # mode = rospy.get_param('~mode')
     
-    port1 = rospy.get_param('~port1')
-    port2 = rospy.get_param('~port2')
+    # port1 = rospy.get_param('~port1')
+    # port2 = rospy.get_param('~port2')
 
-    # mode = 'generate'
+    # # mode = 'generate'
 
-    # port1 = 0
-    # port2 = 0
+    # # port1 = 0
+    # # port2 = 0
 
-    if mode == 'generate':
-        forward(run_mdp_schedule(), port1, port2)
-    elif mode == 'load':
-        forward(load_policy(), port1, port2)
-    else:
-        print("Unknown mode.")
+    # if mode == 'generate':
+    #     forward(run_mdp_schedule(), port1, port2)
+    # elif mode == 'load':
+    #     forward(load_policy(), port1, port2)
+    # else:
+    #     print("Unknown mode.")
