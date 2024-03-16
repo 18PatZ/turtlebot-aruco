@@ -1,4 +1,5 @@
 from docplex.mp.model import Model
+import numpy as np
 import time
 
 # Efficient DOCPLEX code:
@@ -14,14 +15,23 @@ import time
 # vE: end layer values. For single layer (normal value iteration), vS = vE
 def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor):
     if not is_negative:
-        a1 = [vE[end_state] for end_state in mdp.transitions[state][action].keys()]
+        a1 = [vE[end_state] for end_state in mdp.transitions[state][action].keys() if end_state not in mdp.terminal_states.keys()]
     else:
-        a1 = [-vE[end_state] for end_state in mdp.transitions[state][action].keys()]
-    a2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys()]
-    leSum = lp.scal_prod(a1, a2)
+        a1 = [-vE[end_state] for end_state in mdp.transitions[state][action].keys() if end_state not in mdp.terminal_states.keys() ]
 
-    if variable_discount_factor:
+    b1 = [mdp.terminal_states[end_state] for end_state in mdp.transitions[state][action].keys() if end_state in mdp.terminal_states.keys()]
+
+    a2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys() if end_state not in mdp.terminal_states.keys()]
+    b2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys() if end_state in mdp.terminal_states.keys()]
+    
+    leSum = lp.scal_prod(a1, a2) + np.dot(b1,b2)
+
+    if type(discount) == dict:
+        discount_factor = discount[state][action]
+    elif variable_discount_factor:
         discount_factor = discount**len(action)
+    else:
+        discount_factor = discount
 
     if not is_negative:
         return vS[state] >= (mdp.rewards[state][action] + discount_factor * leSum)
@@ -29,7 +39,7 @@ def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variab
         return vS[state] <= -(mdp.rewards[state][action] + discount_factor * leSum)
 
 def makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative, variable_discount_factor):
-    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor) for state in mdp.states for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) if action in mdp.transitions[state]]
+    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor) for state in mdp.states if state not in mdp.terminal_states.keys() for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) if action in mdp.transitions[state]]
 
 def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negative = False, variable_discount_factor=False):
 
@@ -65,7 +75,8 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
     print("time to solve the model: "+str(time_elapsed))
 
     # print(lp.solution) 
-    # print(lp.solution.get_value_dict(v))
+    # print(lp.solve_details.status)
+#     print(lp.solution.get_value_dict(v))
 
     values = lp.solution.get_value_dict(v)
     if is_negative:
@@ -75,34 +86,41 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
     q_values = {}
 
     for state in mdp.states:
-        best_action = None
-        max_expected = None
+        if state not in mdp.terminal_states.keys():
+            best_action = None
+            max_expected = None
 
-        q_values[state] = {}
-        
-        action_set = mdp.actions if restricted_action_set is None else restricted_action_set[state]
-        for action in action_set:
-            if variable_discount_factor:
-                discount_factor = discount**len(action)
-            else:
-                discount_factor = discount
+            q_values[state] = {}
 
-            if action in mdp.transitions[state]:
-                expected_value = mdp.rewards[state][action]
-                for end_state in mdp.transitions[state][action].keys():
-                    prob = mdp.transitions[state][action][end_state]
-                    expected_value += discount_factor * prob * values[end_state]
+            action_set = mdp.actions if restricted_action_set is None else restricted_action_set[state]
+            for action in action_set:
+                if type(discount) == dict:
+                    discount_factor = discount[state][action]
+                elif variable_discount_factor:
+                    discount_factor = discount**len(action)
+                else:
+                    discount_factor = discount
 
-                if max_expected is None or expected_value > max_expected:
-                    best_action = action
-                    max_expected = expected_value
+                if action in mdp.transitions[state]:
+                    expected_value = mdp.rewards[state][action]
+                    for end_state in mdp.transitions[state][action].keys():
+                        prob = mdp.transitions[state][action][end_state]
+                        if end_state not in mdp.terminal_states.keys():
+                            _end_state_value = values[end_state]
+                        else: 
+                            _end_state_value = mdp.terminal_states[end_state]
+                        expected_value += discount_factor * prob * _end_state_value
 
-                q_values[state][action] = expected_value
+                    if max_expected is None or expected_value > max_expected:
+                        best_action = action
+                        max_expected = expected_value
 
-        if max_expected is None:
-            max_expected = 0
-        
-        policy[state] = best_action
+                    q_values[state][action] = expected_value
+
+            if max_expected is None:
+                max_expected = 0
+
+            policy[state] = best_action
 
     return policy, values, q_values
 

@@ -27,11 +27,12 @@ def one_step_two_rover_mdp(
     state_rewards,
     action_rewards,
     out_of_bounds_reward,
+    terminal_states = {}
     ):
     """
     A helper function to build the two-rover MDP
     """
-    states = [(x, y) for x in range(x_steps) for y in range(y_steps)]
+    states = [(x, y) for x in range(x_steps) for y in range(y_steps) if (x,y) not in terminal_states.keys()]
 #     actions = [(along_track, cross_track) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
     actions = actions_and_displacements.keys()
     transitions = {state: {action: collections.defaultdict(lambda : 0) for action in actions} for state in states}
@@ -43,15 +44,14 @@ def one_step_two_rover_mdp(
             for next_delta_state, next_delta_state_probability in next_delta_state_dict.items():
                 _reward += action_rewards[action]*next_delta_state_probability
                 next_state = state[0]+next_delta_state[0], state[1]+next_delta_state[1]
-                if next_state not in states: # Out of bounds!
+                if next_state not in states and next_state not in terminal_states.keys(): # Out of bounds!
                     _reward += out_of_bounds_reward*next_delta_state_probability
                     next_state = state
                 transitions[state][action][next_state] += next_delta_state_probability
             rewards[state][action] += _reward
-        
-    terminal_states = {}
     
     return MDP(states=states, actions=actions, transitions=transitions, rewards=rewards,terminal_states=terminal_states)
+
 
 def addDict(d, key, value):
     if key in d:
@@ -59,9 +59,14 @@ def addDict(d, key, value):
     else:
         d[key] = value
 
-def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy, 
-                 actionScale,
-                 _action_reward, _motion_reward):
+def formationMDP(
+        gridSize,
+        correction_inaccuracy,
+        baseline_inaccuracy,
+        actionScale,
+        _action_reward,
+        _motion_reward,
+        terminal_states={}):
         
     # actions = [(along_track, cross_track) for along_track in (-1, 0, 1) for cross_track in (-2, -1, 0, 1, 2)]
     actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
@@ -115,7 +120,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 if dx !=0 or dy !=0:
-                    addDict(outcomes, (action[0]+dx*a, action[1]+dy*a), baseline_inaccuracy)
+                    addDict(outcomes, (action[0]+dx, action[1]+dy), baseline_inaccuracy)
                     probability_mass -= baseline_inaccuracy
         outcomes[action] = probability_mass
 
@@ -140,17 +145,16 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         #     r += -160
         state_rewards[state] = r
 
-    terminal_states = {}
-
     mdp = one_step_two_rover_mdp(
         x_steps=x_steps,
         y_steps=y_steps,
         actions_and_displacements=transitions,
         action_rewards=action_rewards,
         state_rewards=state_rewards,
-        out_of_bounds_reward=-2#-2000#-1,
+        out_of_bounds_reward=-2,#-2000#-1,
+        terminal_states=terminal_states,
     )
-    mdp.terminals = terminal_states
+    # mdp.terminals = terminal_states
 
     return mdp
 
