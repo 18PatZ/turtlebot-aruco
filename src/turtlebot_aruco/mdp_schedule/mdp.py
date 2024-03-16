@@ -154,7 +154,9 @@ def state_action_value_iteration(
                     #     )
                     values[state][action] = mdp.rewards[state][action] 
                     for new_state, probability in mdp.transitions[state][action].items():
-                        if variable_discount_factor:
+                        if type(discount_factor) == dict:
+                            _df = discount_factor[state][action]
+                        elif variable_discount_factor:
                             _df = discount_factor**len(action)
                         else:
                             _df = discount_factor
