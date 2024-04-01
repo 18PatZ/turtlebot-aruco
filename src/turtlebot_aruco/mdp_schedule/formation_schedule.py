@@ -11,6 +11,7 @@ from turtlebot_aruco.mdp_schedule.so_mdp_creation import grow_transition_probabi
 from turtlebot_aruco.mdp_schedule.periodic_observations_plotting import plot_multi_step_action, plot_next_state_distribution, plot_grid_world_mdp, plot_grid_world_blind_drive, plot_grid_world_policy
 
 import collections
+import numpy as np
 
 # from mdp import MDP, value_iteration, state_action_value_iteration
 
@@ -66,11 +67,17 @@ def formationMDP(
         actionScale,
         _action_reward,
         _motion_reward,
-        terminal_states={}):
+        terminal_states={},
+        action_extent_along_track=1,
+        action_extent_cross_track=1,
+        ):
         
     # actions = [(along_track, cross_track) for along_track in (-1, 0, 1) for cross_track in (-2, -1, 0, 1, 2)]
-    actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
-    a = int(1.0/actionScale)
+    actions = [(along_track/actionScale, cross_track/actionScale) 
+               for along_track in range(-action_extent_along_track, action_extent_along_track+1)
+               for cross_track in range(-action_extent_cross_track, action_extent_cross_track+1)
+               ]
+    # a = int(1.0/actionScale)
 
     # correction_inaccuracy = 0.025 / 2
     # baseline_inaccuracy = 0.025 / 2
@@ -81,49 +88,64 @@ def formationMDP(
     transitions = {}
     action_rewards = {}
     for action in actions:
+
         outcomes = {}
-        probability_mass = 1.
+        # probability_mass = 1.
 
         c = correction_inaccuracy
         if action[0] != 0 and action[1] != 0:
             c /= 2
         
         action_rewards[action] = _action_reward
-        if action[0] != 0:
-            # addDict(outcomes, (action[0]+a, action[1]), correction_inaccuracy)
-            # addDict(outcomes, (action[0]-a, action[1]), correction_inaccuracy)
-            # addDict(outcomes, (action[0], a), correction_inaccuracy)
-            # addDict(outcomes, (action[0], -a), correction_inaccuracy)
-            # addDict(outcomes, (action[0]*2, a), correction_inaccuracy)
-            # addDict(outcomes, (action[0]*2, -a), correction_inaccuracy)
-            # probability_mass -= 4*correction_inaccuracy
-            for dx in (-1, 0, 1):
-                for dy in (-1, 0, 1):
-                    addDict(outcomes, (action[0]+dx, dy), c)
-                    probability_mass -= c
-            action_rewards[action] += _motion_reward
-            
-        if action[1] != 0:
-            # addDict(outcomes, (action[0], action[1]+a), correction_inaccuracy)
-            # addDict(outcomes, (action[0], action[1]-a), correction_inaccuracy)
-            # addDict(outcomes, (a, action[1]), correction_inaccuracy)
-            # addDict(outcomes, (-a, action[1]), correction_inaccuracy)
-            # addDict(outcomes, (a, action[1]*2), correction_inaccuracy)
-            # addDict(outcomes, (-a, action[1]*2), correction_inaccuracy)
-            # probability_mass -= 4*correction_inaccuracy
-            for dx in (-1, 0, 1):
-                for dy in (-1, 0, 1):
-                    addDict(outcomes, (dx, action[1]+dy), c)
-                    probability_mass -= c
-            action_rewards[action] += _motion_reward
-            
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                if dx !=0 or dy !=0:
-                    addDict(outcomes, (action[0]+dx, action[1]+dy), baseline_inaccuracy)
-                    probability_mass -= baseline_inaccuracy
-        outcomes[action] = probability_mass
 
+        # If action is not an int, clamp to the nearest four corners
+        integer_action = collections.defaultdict(lambda : 0.)
+        integer_action[(math.floor(action[0]),math.floor(action[1]))] += (1-(action[0]-math.floor(action[0])))*(1-(action[1]-math.floor(action[1])))
+        integer_action[(math.floor(action[0]),math.ceil(action[1]))] += (1-(action[0]-math.floor(action[0])))*((action[1]-math.floor(action[1])))
+        integer_action[(math.ceil(action[0]),math.floor(action[1]))] += ((action[0]-math.floor(action[0])))*(1-(action[1]-math.floor(action[1])))
+        integer_action[(math.ceil(action[0]),math.ceil(action[1]))] += ((action[0]-math.floor(action[0])))*((action[1]-math.floor(action[1])))
+        overall_integer_action_weight = np.sum([v for v in integer_action.values()])
+        integer_action = {k: v/overall_integer_action_weight for k, v in integer_action.items()}
+        assert np.sum([v for v in integer_action.values()]) == 1, "ERROR: integer action weights do not sum up to 1"
+        for integer_action, integer_action_weight in integer_action.items():
+            probability_mass = integer_action_weight
+            if integer_action[0] != 0:
+                # addDict(outcomes, (action[0]+a, action[1]), correction_inaccuracy)
+                # addDict(outcomes, (action[0]-a, action[1]), correction_inaccuracy)
+                # addDict(outcomes, (action[0], a), correction_inaccuracy)
+                # addDict(outcomes, (action[0], -a), correction_inaccuracy)
+                # addDict(outcomes, (action[0]*2, a), correction_inaccuracy)
+                # addDict(outcomes, (action[0]*2, -a), correction_inaccuracy)
+                # probability_mass -= 4*correction_inaccuracy
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        addDict(outcomes, (integer_action[0]+dx, dy), c*integer_action_weight)
+                        probability_mass -= c*integer_action_weight
+                action_rewards[action] += _motion_reward*integer_action_weight
+                
+            if integer_action[1] != 0:
+                # addDict(outcomes, (action[0], action[1]+a), correction_inaccuracy)
+                # addDict(outcomes, (action[0], action[1]-a), correction_inaccuracy)
+                # addDict(outcomes, (a, action[1]), correction_inaccuracy)
+                # addDict(outcomes, (-a, action[1]), correction_inaccuracy)
+                # addDict(outcomes, (a, action[1]*2), correction_inaccuracy)
+                # addDict(outcomes, (-a, action[1]*2), correction_inaccuracy)
+                # probability_mass -= 4*correction_inaccuracy
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        addDict(outcomes, (dx, integer_action[1]+dy), c*integer_action_weight)
+                        probability_mass -= c*integer_action_weight
+                action_rewards[action] += _motion_reward*integer_action_weight
+                
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    if dx !=0 or dy !=0:
+                        addDict(outcomes, (integer_action[0]+dx, integer_action[1]+dy), baseline_inaccuracy*integer_action_weight)
+                        probability_mass -= baseline_inaccuracy*integer_action_weight
+
+            addDict(outcomes, integer_action, probability_mass)
+
+        assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
         transitions[action] = outcomes
 
     # If driving along, smear along forward dict
