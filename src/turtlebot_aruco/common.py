@@ -97,3 +97,8 @@ def policyToJsonFriendly2(policies):
     return [{stateTupleToStr(state): actionSeqToJsonFriendly(policy[state]) for state in policy} for policy in policies]
 def jsonFriendlyToPolicy2(policies):
     return [{strToStateTuple(state): jsonFriendlyToActionSeq(policy[state]) for state in policy} for policy in policies]
+
+def valuesToJsonFriendly2(values):
+    return {stateTupleToStr(state): values[state] for state in values}
+def jsonFriendlyToValues2(values):
+    return {strToStateTuple(state): values[state] for state in values}
