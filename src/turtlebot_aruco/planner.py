@@ -90,15 +90,20 @@ def run_mdp_schedule():
 
 
 def run_test():
-    c = 1.0
-    t = 0.25
-    policy, policy_raw = formationPolicy(gridSize=GRID_SIZE, 
+    c = 1.5
+    t = 0.75
+    policy, policy_raw, state_values = formationPolicy(gridSize=GRID_SIZE, 
         actionScale=STATE_SCALE_FACTOR, 
-        checkin_reward=-c, transition_alpha=t, draw=True)
+        checkin_reward=-c, transition_alpha=t, draw=True, max_obs_time_horizon=2)
     
     s2 = json.dumps(policyToJsonFriendly2([policy_raw]), indent=4)
     with open(f"output/C-{c}_T{t}_policy-raw.json", 'w') as file:
         file.write(s2)
+
+    s3 = json.dumps(valuesToJsonFriendly2(state_values), indent=4)
+    with open(f"output/C-{c}_T{t}_state-values.json", 'w') as file:
+        file.write(s3)
+
     # for c in np.linspace(0, 2, num=5):
     #     for t in np.linspace(0, 1, num=5):
     #         print(f"CHECKIN {c} TRANSITION {t}")

@@ -65,6 +65,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
         
     # actions = [(along_track, cross_track) for along_track in (-1, 0, 1) for cross_track in (-2, -1, 0, 1, 2)]
     actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (-1, 0, 1)]
+    actions = [(int(along_track/actionScale), int(cross_track/actionScale)) for along_track in (-1, 0, 1) for cross_track in (1, 0, -1)]
     a = int(1.0/actionScale)
 
     # correction_inaccuracy = 0.025 / 2
@@ -124,6 +125,9 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
     # If driving along, smear along forward dict
     # If driving across, smear across that dict
     # IF driving across and along, smear in a rectangle?
+        
+    _f = plot_next_state_distribution(transitions,1)
+    _f.savefig(f"output/transitions.pdf", bbox_inches='tight')
         
     x_steps = gridSize
     y_steps = gridSize
@@ -224,7 +228,7 @@ def policyLen(policy):
 
 
 def formationPolicy(gridSize = 13, actionScale = 1, 
-                    checkin_reward = -0.2, transition_alpha = 0.5, draw = False):
+                    checkin_reward = -0.2, transition_alpha = 0.5, draw = False, max_obs_time_horizon = 2):
     
     correction_inaccuracy = 0.025 * transition_alpha# / 2
     baseline_inaccuracy = 0.025 * transition_alpha# / 2
@@ -240,7 +244,7 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
     # Multi step
 
-    max_obs_time_horizon = 2
+    # max_obs_time_horizon = 2
     discount_factor = .95
     illegal_action_reward = -1
 
@@ -372,4 +376,4 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
         print("Drawing done.")
 
-    return conv_policy, policy
+    return conv_policy, policy, state_values
