@@ -120,8 +120,9 @@ def formationMDP(
                 # probability_mass -= 4*correction_inaccuracy
                 for dx in (-1, 0, 1):
                     for dy in (-1, 0, 1):
-                        addDict(outcomes, (integer_action[0]+dx, dy), c*integer_action_weight)
-                        probability_mass -= c*integer_action_weight
+                        if dx != 0 or dy != integer_action[1]:
+                            addDict(outcomes, (integer_action[0]+dx, dy), c*integer_action_weight)
+                            probability_mass -= c*integer_action_weight
                 action_rewards[action] += _motion_reward*integer_action_weight
                 
             if integer_action[1] != 0:
@@ -134,8 +135,9 @@ def formationMDP(
                 # probability_mass -= 4*correction_inaccuracy
                 for dx in (-1, 0, 1):
                     for dy in (-1, 0, 1):
-                        addDict(outcomes, (dx, integer_action[1]+dy), c*integer_action_weight)
-                        probability_mass -= c*integer_action_weight
+                        if dx != integer_action[0] or dy != 0:
+                            addDict(outcomes, (dx, integer_action[1]+dy), c*integer_action_weight)
+                            probability_mass -= c*integer_action_weight
                 action_rewards[action] += _motion_reward*integer_action_weight
                 
             for dx in (-1, 0, 1):
@@ -144,10 +146,10 @@ def formationMDP(
                         addDict(outcomes, (integer_action[0]+dx, integer_action[1]+dy), baseline_inaccuracy*integer_action_weight)
                         probability_mass -= baseline_inaccuracy*integer_action_weight
 
-            # addDict(outcomes, integer_action, probability_mass)
-            outcomes[integer_action] = probability_mass
+            addDict(outcomes, integer_action, probability_mass)
+            # outcomes[integer_action] = probability_mass
 
-        # assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
+        assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
         transitions[action] = outcomes
 
     # If driving along, smear along forward dict
