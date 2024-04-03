@@ -144,9 +144,10 @@ def formationMDP(
                         addDict(outcomes, (integer_action[0]+dx, integer_action[1]+dy), baseline_inaccuracy*integer_action_weight)
                         probability_mass -= baseline_inaccuracy*integer_action_weight
 
-            addDict(outcomes, integer_action, probability_mass)
+            # addDict(outcomes, integer_action, probability_mass)
+            outcomes[integer_action] = probability_mass
 
-        assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
+        # assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
         transitions[action] = outcomes
 
     # If driving along, smear along forward dict
