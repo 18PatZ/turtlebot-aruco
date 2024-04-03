@@ -48,6 +48,7 @@ def combine():
     plt.setp(axes, xticks=[], yticks=[])
     [ax.axis('off') for ax in fig.axes]
     fig.savefig(f"output/_COMBINED_LEN.pdf", bbox_inches='tight')
+    fig.savefig(f"output/_COMBINED_LEN.svg")
             
 if __name__=="__main__":
     combine()

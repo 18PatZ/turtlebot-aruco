@@ -2,6 +2,7 @@
 from turtlebot_aruco.mdp.lp import linearProgrammingSolve
 from turtlebot_aruco.mdp_schedule.mdp import MDP
 
+import numpy as np
 import matplotlib.pyplot as plt
 # from turtlebot_aruco.mdp_schedule.periodic_observations_mdp import grid_world_mdp, add_terminal_state
 # from turtlebot_aruco.mdp_schedule.periodic_observations_mdp_creation import create_recursive_actions_and_transitions
@@ -95,8 +96,9 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
             # probability_mass -= 4*correction_inaccuracy
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
-                    addDict(outcomes, (action[0]+dx, dy), c)
-                    probability_mass -= c
+                    if dx != 0 or dy != action[1]:
+                        addDict(outcomes, (action[0]+dx, dy), c)
+                        probability_mass -= c
             action_rewards[action] += _motion_reward
             
         if action[1] != 0:
@@ -109,8 +111,9 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
             # probability_mass -= 4*correction_inaccuracy
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
-                    addDict(outcomes, (dx, action[1]+dy), c)
-                    probability_mass -= c
+                    if dx != action[0] or dy != 0:
+                        addDict(outcomes, (dx, action[1]+dy), c)
+                        probability_mass -= c
             action_rewards[action] += _motion_reward
             
         for dx in (-1, 0, 1):
@@ -120,6 +123,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
                     probability_mass -= baseline_inaccuracy
         outcomes[action] = probability_mass
 
+        assert (np.abs(np.sum(list(outcomes.values()))-1.)<1e-10), "ERROR: sum of outcomes for action {} sum up to {}".format(action, np.sum(list(outcomes.values())))
         transitions[action] = outcomes
 
     # If driving along, smear along forward dict
@@ -325,6 +329,8 @@ def formationPolicy(gridSize = 13, actionScale = 1,
     print("converted policy:")
     print(conv_policy)
 
+    indifference = None
+
     if draw:
 
         print("Drawing...")
@@ -376,4 +382,4 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
         print("Drawing done.")
 
-    return conv_policy, policy, state_values
+    return conv_policy, policy, state_values, indifference
