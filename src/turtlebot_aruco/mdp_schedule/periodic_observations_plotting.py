@@ -461,7 +461,7 @@ def plot_next_state_distribution(one_step_actions_and_transitions, actions_betwe
     plt.setp(ax, xlim=[-2*actions_between_checkins, 2*actions_between_checkins+1], ylim=[-2*actions_between_checkins, 2*actions_between_checkins+1])
     return fig
 
-def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, state_highlight=None, ax=None, legend=True):
+def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, state_highlight=None, ax=None, legend=True, cmap=None):
     
     fig = None
     if ax is None:
@@ -490,7 +490,8 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
         data[state[1],state[0]] = dist
         
     # im = ax.imshow(data,cmap='cividis', vmin=vmin, vmax=vmax)
-    cmap = plt.get_cmap('cividis', vmax-vmin + 1)
+    if cmap is None:
+        cmap = plt.get_cmap('cividis', vmax-vmin + 1)
     im = ax.imshow(data,cmap=cmap, vmin=vmin, vmax=vmax)
         
 #     for state, action in policy.items():
@@ -505,19 +506,25 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
     patches += policy_plt
 
     if state_highlight is not None:
-        pos = (state_highlight[0]-0.5,state_highlight[1]-0.5)
-        patches.append(mpatches.Rectangle(pos, width=1, height=1, color="r", fill=True))
-        
-        action = policy[state_highlight]
-        x_offset = 0#.5
-        y_offset = 0#.5
-        linewidth=2
-        linecolor = "r"
-        if type(action[1]) is tuple and type(action[0]) is tuple: #Multi-step MDP
-            full_intended_action = action[0]  # This is a list of tuples
+        if not isinstance(state_highlight, list):
+            state_highlight = [state_highlight]
+
+        for state in state_highlight:
+            pos = (state[0]-0.5,state[1]-0.5)
+            patches.append(mpatches.Rectangle(pos, width=1, height=1, color="r", fill=True, alpha=0.5))
             
-            pos = (state_highlight[0]+x_offset,state_highlight[1]+y_offset)
-            patches += plot_multi_step_action(start_state=pos, full_intended_action=full_intended_action, linewidth=linewidth, color=linecolor)
+            if len(state_highlight) == 1:
+                action = policy[state]
+                x_offset = 0#.5
+                y_offset = 0#.5
+                linewidth=2
+                linecolor = "r"
+                
+                if type(action[1]) is tuple and type(action[0]) is tuple: #Multi-step MDP
+                    full_intended_action = action[0]  # This is a list of tuples
+                    
+                    pos = (state[0]+x_offset,state[1]+y_offset)
+                    patches += plot_multi_step_action(start_state=pos, full_intended_action=full_intended_action, linewidth=linewidth, color=linecolor)
         
     
         
