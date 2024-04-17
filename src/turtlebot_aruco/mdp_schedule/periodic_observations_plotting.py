@@ -513,10 +513,11 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
             # pos = (state[0]-0.5/2,state[1]-0.5/2)
             # patches.append(mpatches.Rectangle(pos, width=0.5, height=0.5, color="r", fill=True, alpha=0.5))
             pos = (state[0],state[1])
-            patches.append(mpatches.Circle(pos, radius=0.25, color="r", fill=True, alpha=0.7))
+            patches.append(mpatches.Circle(pos, radius=0.25, color="r", fill=True, alpha=1.0))
 
             if len(state_highlight) == 1:
-                action = policy[state_highlight]
+                state = state_highlight[0]
+                action = policy[state]
                 x_offset = 0#.5
                 y_offset = 0#.5
                 linewidth=2
@@ -524,7 +525,7 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
                 if type(action[1]) is tuple and type(action[0]) is tuple: #Multi-step MDP
                     full_intended_action = action[0]  # This is a list of tuples
                     
-                    pos = (state_highlight[0]+x_offset,state_highlight[1]+y_offset)
+                    pos = (state[0]+x_offset,state[1]+y_offset)
                     patches += plot_multi_step_action(start_state=pos, full_intended_action=full_intended_action, linewidth=linewidth, color=linecolor)
         
     
