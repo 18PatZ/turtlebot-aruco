@@ -7,8 +7,23 @@ import sys
 
 pub = None
 
+
+def wait_for_sub(pub, rateHz):
+    rate = rospy.Rate(rateHz) # Hz
+    print(id()+": Current subscribers:",pub.get_num_connections())
+
+    if pub.get_num_connections() == 0:
+        print(id()+":   Waiting for subscriber...")
+
+    while pub.get_num_connections() == 0:
+        rate.sleep()
+
+
 def signal_handler(sig, frame):
     print(id()+": Signal received.")
+
+    wait_for_sub(pub, 1000) # Hz
+
     pub.publish(1)
     print(id()+": Sent start command.")
     sys.exit(0)

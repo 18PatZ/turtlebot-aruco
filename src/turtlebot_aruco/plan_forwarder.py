@@ -24,6 +24,17 @@ def receiveMessage(sock):
     return received
 
 
+def wait_for_sub(pub, rateHz):
+    rate = rospy.Rate(rateHz) # Hz
+    print("Current subscribers:",pub.get_num_connections())
+
+    if pub.get_num_connections() == 0:
+        print("  Waiting for subscriber...")
+
+    while pub.get_num_connections() == 0:
+        rate.sleep()
+
+
 def run(pub, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -39,8 +50,10 @@ def run(pub, port):
     msg = receiveMessage(conn)
     # print("Received message", msg)
 
+    wait_for_sub(pub, 100) # Hz
+
     pub.publish(msg)
-    print("Published.")
+    print("Published message of length", len(msg))
 
     s.close()
 
