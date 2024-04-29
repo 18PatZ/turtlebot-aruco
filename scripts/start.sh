@@ -12,8 +12,8 @@ PID2=$!
 #echo $PID1
 #echo $PID2
 
-echo "Sleeping for 3 seconds"
-sleep 3
+echo "Sleeping for 10 seconds"
+sleep 10
 
 echo "Sending signals..."
 kill -s SIGUSR1 $PID1
