@@ -2,6 +2,7 @@
 from turtlebot_aruco.mdp.lp import linearProgrammingSolve
 from turtlebot_aruco.mdp_schedule.mdp import MDP
 
+import numpy as np
 import matplotlib.pyplot as plt
 # from turtlebot_aruco.mdp_schedule.periodic_observations_mdp import grid_world_mdp, add_terminal_state
 # from turtlebot_aruco.mdp_schedule.periodic_observations_mdp_creation import create_recursive_actions_and_transitions
@@ -9,6 +10,8 @@ import matplotlib.pyplot as plt
 from turtlebot_aruco.mdp_schedule.so_mdp_creation import grow_transition_probabilities_and_rewards, make_existing_actions_composite
 
 from turtlebot_aruco.mdp_schedule.periodic_observations_plotting import plot_multi_step_action, plot_next_state_distribution, plot_grid_world_mdp, plot_grid_world_blind_drive, plot_grid_world_policy
+
+from turtlebot_aruco.common import convertAction, convertPolicy
 
 import collections
 import numpy as np
@@ -188,38 +191,6 @@ def formationMDP(
     return mdp
 
 
-def convertAction(actionScale, action):
-    bot_left = ""
-    bot_right = ""
-
-    action = (int(action[0] * actionScale), int(action[1] * actionScale))
-
-    # left is positive, therefore +1 means increase distance
-    if action[1] == 1:
-        bot_left = "LEFT"
-        bot_right = "RIGHT"
-    elif action[1] == -1: # close distance
-        bot_left = "RIGHT"
-        bot_right = "LEFT"
-    elif action[1] == 0:
-        if action[0] == 1:
-            bot_right = "FORWARD"
-        elif action[0] == -1:
-            bot_left = "FORWARD"
-
-
-    # forward is positive, therefore +1 means left bot should go forward more
-    if action[0] == 0 or action[0] == 1: # both are side by side or left go more
-        bot_left = "DOUBLE" + bot_left
-    if action[0] == 0 or action[0] == -1: # both are side by side or left go less
-        bot_right = "DOUBLE" + bot_right
-
-    return bot_left + "-" + bot_right
-
-
-def convertPolicy(actionScale, policy):
-    new_policy = {k: tuple([convertAction(actionScale, a) for a in v]) for k, v in policy.items()}
-    return new_policy
 
 
 def getIndifference(values):
@@ -354,6 +325,8 @@ def formationPolicy(gridSize = 13, actionScale = 1,
     print("converted policy:")
     print(conv_policy)
 
+    indifference = None
+
     if draw:
 
         print("Drawing...")
@@ -405,4 +378,4 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
         print("Drawing done.")
 
-    return conv_policy, policy, state_values
+    return conv_policy, policy, state_values, indifference

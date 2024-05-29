@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# import rospy 
+import rospy 
 # from std_msgs.msg import String
 import numpy as np
 import math
@@ -11,7 +11,7 @@ import os
 
 # from turtlebot_aruco.mdp.formationAnimation import *
 from turtlebot_aruco.common import *
-from turtlebot_aruco.mdp_schedule.formation_schedule import formationPolicy
+# from turtlebot_aruco.mdp_schedule.formation_schedule import formationPolicy
 
 
 def policyActionQuery(time, state, policy, checkin_period):
@@ -87,22 +87,38 @@ def run_mdp_schedule():
 
     return s
 
+def runWithParams(c, t, horizon):
+    hS = "_H4" if horizon == 3 else ""
 
-
-def run_test():
-    c = 1.5
-    t = 0.75
-    policy, policy_raw, state_values = formationPolicy(gridSize=GRID_SIZE, 
+    policy, policy_raw, state_values, indifference = formationPolicy(gridSize=GRID_SIZE, 
         actionScale=STATE_SCALE_FACTOR, 
-        checkin_reward=-c, transition_alpha=t, draw=True, max_obs_time_horizon=2)
+        checkin_reward=-c, transition_alpha=t, draw=False, max_obs_time_horizon=horizon)
     
     s2 = json.dumps(policyToJsonFriendly2([policy_raw]), indent=4)
-    with open(f"output/C-{c}_T{t}_policy-raw.json", 'w') as file:
+    with open(f"output/C-{c}_T{t}{hS}_policy-raw.json", 'w') as file:
         file.write(s2)
 
-    s3 = json.dumps(valuesToJsonFriendly2(state_values), indent=4)
-    with open(f"output/C-{c}_T{t}_state-values.json", 'w') as file:
-        file.write(s3)
+    if state_values is not None:
+        s3 = json.dumps(valuesToJsonFriendly2(state_values), indent=4)
+        with open(f"output/C-{c}_T{t}{hS}_state-values.json", 'w') as file:
+            file.write(s3)
+
+    if indifference is not None:
+        s3 = json.dumps(valuesToJsonFriendly2(indifference), indent=4)
+        with open(f"output/C-{c}_T{t}{hS}_indifference.json", 'w') as file:
+            file.write(s3)
+
+def run_test():
+    # c = 1.5
+    # t = 0.75
+
+    horizon = 2
+
+    # runWithParams(c, t, horizon)    
+    for c in np.linspace(0, 2, num=5):
+        for t in np.linspace(0, 1, num=5):
+            print(f"CHECKIN {c} TRANSITION {t}")
+            runWithParams(c, t, horizon)
 
     # for c in np.linspace(0, 2, num=5):
     #     for t in np.linspace(0, 1, num=5):
@@ -123,7 +139,23 @@ def run_test():
     #     actionScale=STATE_SCALE_FACTOR, 
     #     checkin_reward=-2.0, transition_alpha=0.5, draw=True)
 
+def load_raw_policy():
 
+    if not os.path.isfile("policy-raw.json"):
+        print("Policy not generated yet.")
+        return None
+
+    with open("policy-raw.json", 'r') as file:
+        s = file.read()
+        policy = jsonFriendlyToPolicy2(json.loads(s))[0]
+        conv_policy = convertPolicy(STATE_SCALE_FACTOR, policy)
+    
+        s = json.dumps(policyToJsonFriendly([conv_policy]), indent=4)
+        with open("policy.json", 'w') as file2:
+            file2.write(s)
+        return s
+
+    return None
 
 def load_policy():
 
@@ -162,28 +194,31 @@ def send_plan(plan, host, port):
     
 
 def forward(plan, port1, port2):
-    send_plan(plan, "127.0.0.1", port1)
-    send_plan(plan, "127.0.0.1", port2)
+    if port1 > 0:
+        send_plan(plan, "127.0.0.1", port1)
+    if port2 > 0:
+        send_plan(plan, "127.0.0.1", port2)
 
 
 if __name__=="__main__":
-    run_test()
+    # run_test()
+    # load_raw_policy()
     
-    # rospy.init_node('turtlebot_mdp_planner')
-
-    # mode = rospy.get_param('~mode')
+    rospy.init_node('turtlebot_mdp_planner')
     
-    # port1 = rospy.get_param('~port1')
-    # port2 = rospy.get_param('~port2')
+    mode = rospy.get_param('~mode')
+    
+    port1 = rospy.get_param('~port1')
+    port2 = rospy.get_param('~port2')
 
-    # # mode = 'generate'
+    # mode = 'generate'
 
-    # # port1 = 0
-    # # port2 = 0
+    # port1 = 0
+    # port2 = 0
 
-    # if mode == 'generate':
-    #     forward(run_mdp_schedule(), port1, port2)
-    # elif mode == 'load':
-    #     forward(load_policy(), port1, port2)
-    # else:
-    #     print("Unknown mode.")
+    if mode == 'generate':
+        forward(run_mdp_schedule(), port1, port2)
+    elif mode == 'load':
+        forward(load_policy(), port1, port2)
+    else:
+        print("Unknown mode.")
