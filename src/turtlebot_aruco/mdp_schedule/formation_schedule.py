@@ -228,7 +228,7 @@ def policyLen(policy):
 
 
 def formationPolicy(gridSize = 13, actionScale = 1, 
-                    checkin_reward = -0.2, transition_alpha = 0.5, draw = False, max_obs_time_horizon = 2):
+                    checkin_reward = -0.2, transition_alpha = 0.5, draw = False, max_obs_time_horizon = 2, variable_discount_factor_func = None):
     
     correction_inaccuracy = 0.025 * transition_alpha# / 2
     baseline_inaccuracy = 0.025 * transition_alpha# / 2
@@ -263,7 +263,7 @@ def formationPolicy(gridSize = 13, actionScale = 1,
             current_rewards,
             mdp.transitions,
             mdp.rewards,
-            discount_factor=discount_factor,
+            discount_factor=discount_factor, # maybe variable_discount_factor needs to be used here too
             illegal_action_rewarder=lambda s,a: illegal_action_reward,
         )
         cumulative_transitions[t] = current_transitions
@@ -310,9 +310,15 @@ def formationPolicy(gridSize = 13, actionScale = 1,
 
     # 50s to build, 93s for value iteration, 73s for LP
 
+    # expected delays
+    variable_discount_factor = discount_factor
+    if variable_discount_factor_func is not None:
+        variable_discount_factor = variable_discount_factor_func(discount_factor, multi_step_rendezvous)
+
+
     policy, state_values, values = linearProgrammingSolve(
         multi_step_rendezvous, 
-        discount = discount_factor,#0.85, 
+        discount = variable_discount_factor,#0.85, 
         is_negative=True,
         variable_discount_factor=True,
         restricted_action_set = None)

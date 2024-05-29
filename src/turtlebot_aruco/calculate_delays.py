@@ -61,14 +61,14 @@ def smooth(smoothed, delays, x, minV, maxV, stateFunc):
     if len(left) > 0 and len(right) > 0:
         x1 = left[-1]
         x2 = right[0]
-    elif len(left) > 1:
-        x1 = left[-2]
-        x2 = left[-1]
+    # elif len(left) > 1:
+    #     x1 = left[-2]
+    #     x2 = left[-1]
     elif len(left) > 0:
         x1 = x2 = left[-1]
-    elif len(right) > 1:
-        x1 = right[0]
-        x2 = right[1]
+    # elif len(right) > 1:
+    #     x1 = right[0]
+    #     x2 = right[1]
     elif len(right) > 0:
         x1 = x2 = right[0]
     else:
@@ -104,15 +104,17 @@ for y in range(int(y_min), int(y_max)+1):
         smooth(smoothed, delays, x, x_min, x_max, lambda xp: (xp, y))
 
 converted = {
-    state: int((delay - 20)) for state, delay in smoothed.items()
+    state: max((delay - 20)/10, 0) for state, delay in smoothed.items()
 }
+
+print(converted)
 
 vmin = float("inf")
 vmax = -float("inf")
 
 for state, delay in converted.items():
-    vmin=min(vmin, delay)
-    vmax=max(vmax, delay)
+    vmin=int(min(vmin, delay))
+    vmax=int(max(vmax, delay))
 
 policy_length = {
     state: (converted[state] if state in converted else 0) for state, action in policy.items()
