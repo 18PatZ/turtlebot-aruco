@@ -502,8 +502,9 @@ def plot_grid_world_blind_drive(mdp, policy, how_far, vmin=None, vmax=None, stat
 #             action[0]*.9,
 #             action[1]*.9,))
     
-    policy_plt = plot_grid_world_policy(policy, x_offset=0., y_offset=0.)
-    patches += policy_plt
+    if policy[next(iter(policy))] is not None:
+        policy_plt = plot_grid_world_policy(policy, x_offset=0., y_offset=0.)
+        patches += policy_plt
 
     if state_highlight is not None:
         if not isinstance(state_highlight, list):
