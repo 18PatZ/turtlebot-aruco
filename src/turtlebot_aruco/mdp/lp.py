@@ -20,6 +20,8 @@ def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variab
     a2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys()]
     leSum = lp.scal_prod(a1, a2)
 
+    discount_factor = discount
+
     if variable_discount_factor:
         discount_factor = discount**len(action)
 
