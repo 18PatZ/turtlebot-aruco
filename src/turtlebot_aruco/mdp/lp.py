@@ -20,6 +20,8 @@ def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variab
     a2 = [mdp.transitions[state][action][end_state] for end_state in mdp.transitions[state][action].keys()]
     leSum = lp.scal_prod(a1, a2)
 
+    discount_factor = discount
+
     if variable_discount_factor:
         discount_factor = discount**len(action)
 
@@ -29,14 +31,21 @@ def makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variab
         return vS[state] <= -(mdp.rewards[state][action] + discount_factor * leSum)
 
 def makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative, variable_discount_factor):
-    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor) for state in mdp.states for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) if action in mdp.transitions[state]]
+    return [makeConstraint(mdp, discount, lp, vS, vE, state, action, is_negative, variable_discount_factor) 
+            for state in mdp.states 
+            for action in (mdp.actions if restricted_action_set is None else restricted_action_set[state]) 
+                if action in mdp.transitions[state]]
 
 def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negative = False, variable_discount_factor=False):
 
     time_start = time.time()
 
     lp = Model(ignore_names=True, checker='off')
-    v = lp.continuous_var_dict(keys = mdp.states, name = "v")
+    
+    states_plus_terminals = list(mdp.states)
+    states_plus_terminals.extend(mdp.terminal_states.keys())
+
+    v = lp.continuous_var_dict(keys = states_plus_terminals, name = "v")
 
     lp.v_sum = lp.sum_vars(v)
 
@@ -44,6 +53,8 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
         objective = lp.minimize(lp.v_sum)
     else:
         objective = lp.maximize(lp.v_sum)
+
+    lp.add_constraints([v[ts] == ts_value for ts, ts_value in mdp.terminal_states.items()])
 
     lp.add_constraints(makeConstraintsList(mdp, discount, lp, v, v, restricted_action_set, is_negative, variable_discount_factor))
     
@@ -69,7 +80,7 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
 
     values = lp.solution.get_value_dict(v)
     if is_negative:
-        values = {state: -values[state] for state in values}
+        values = {state: -values[state] for state in values if state in values}
 
     policy = {}
     q_values = {}
