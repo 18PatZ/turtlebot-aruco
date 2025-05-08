@@ -108,7 +108,7 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
 
     return policy, values, q_values
 
-def linearProgrammingSolveMultiLayer(mdps, discounts, restricted_action_set = None, is_negative = False):
+def linearProgrammingSolveMultiLayer(mdps, discounts, restricted_action_set = None, is_negative = False, variable_discount_factor = False):
 
     time_start = time.time()
 
@@ -127,7 +127,7 @@ def linearProgrammingSolveMultiLayer(mdps, discounts, restricted_action_set = No
         discount = discounts[i]
         vS = v_layers[i]
         vE = v_layers[(i+1) % len(v_layers)] # last layer wraps around to first layer
-        lp.add_constraints(makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative))
+        lp.add_constraints(makeConstraintsList(mdp, discount, lp, vS, vE, restricted_action_set, is_negative, variable_discount_factor))
     
     time_elapsed = (time.time() - time_start)
          

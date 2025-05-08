@@ -125,7 +125,7 @@ def extendCompositeMDP(mdp, discount, prevPeriodMDP, restricted_action_set = Non
 
     for action_sequence in prevPeriodMDP.actions:
         for action in mdp.actions:
-            action_tuple = action if type(action) is tuple else (action,)
+            action_tuple = (action,)
             extended_action_sequence = action_sequence + action_tuple # extend tuple
             compMDP.actions.append(extended_action_sequence)
 
@@ -140,7 +140,7 @@ def extendCompositeMDP(mdp, discount, prevPeriodMDP, restricted_action_set = Non
                 # now extend chain by one action by multiplying transition probability of previous chain end state to new end state through action
 
                 for action in mdp.actions:
-                    action_tuple = action if type(action) is tuple else (action,)
+                    action_tuple = (action,)
                     prob_chain = prevPeriodMDP.transitions[state][prev_action_sequence][end_state]
 
                     if end_state in mdp.transitions and action in mdp.transitions[end_state]:
@@ -170,7 +170,7 @@ def extendCompositeMDP(mdp, discount, prevPeriodMDP, restricted_action_set = Non
             for action in mdp.actions:
                 if action in mdp.rewards[end_state]:
                     # extend chain by one action
-                    action_tuple = action if type(action) is tuple else (action,)
+                    action_tuple = (action,)
                     extended_action_sequence = prev_action_sequence + action_tuple
 
                     extension_reward = 0
@@ -718,7 +718,7 @@ def branchAndBound(grid, base_mdp, discount, checkin_period, threshold, max_iter
 
             discount_input = pow(discount, t)
             if doLinearProg:
-                policy, values = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
+                policy, values, _ = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
                 q_values = qValuesFromR(compMDP, discount_input, values, pruned_action_set)
             else:
                 policy, values, q_values = qValueIteration(grid, compMDP, discount_input, threshold, max_iterations, pruned_action_set)
@@ -739,7 +739,7 @@ def branchAndBound(grid, base_mdp, discount, checkin_period, threshold, max_iter
 
         discount_input = pow(discount, checkin_period)
         if doLinearProg:
-            policy, state_values = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
+            policy, state_values, _ = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
             q_values = qValuesFromR(compMDP, discount_input, state_values, pruned_action_set)
         else:
             policy, state_values, q_values = qValueIteration(grid, compMDP, discount_input, threshold, max_iterations, pruned_action_set)
@@ -797,7 +797,7 @@ def branchAndBound(grid, base_mdp, discount, checkin_period, threshold, max_iter
 
     start = time.time()
     if doLinearProg:
-        policy, values = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
+        policy, values, _ = linearProgrammingSolve(compMDP, discount_input, pruned_action_set)
         q_values = qValuesFromR(compMDP, discount_input, values, pruned_action_set)
     else:
         policy, values, q_values = qValueIteration(grid, compMDP, discount_input, threshold, max_iterations, pruned_action_set)
@@ -892,7 +892,7 @@ def run(grid, mdp, discount, start_state, checkin_period, doBranchAndBound,
 
         if doLinearProg:
             l1 = time.time()
-            policy, values = linearProgrammingSolve(compMDP, discount_t, restricted_action_set = restricted_action_set)
+            policy, values, _ = linearProgrammingSolve(compMDP, discount_t, restricted_action_set = restricted_action_set)
             
             end2 = time.time()
             print("MDP linear programming time:", end2 - l1)
@@ -1615,13 +1615,13 @@ def mixedPolicy(values1, values2, compMDP1, compMDP2, alpha, discount):
 #     return policy_blend
 
 
-def createRecurringChain(discount, discount_checkin, compMDPs, greedyCompMDPs, strides, midpoints, checkinCostFunction):
+def createRecurringChain(discount, discount_checkin, compMDPs, greedyCompMDPs, strides, midpoints, checkinCostFunction, is_negative=False):
     discount_ts = [pow(discount, k) for k in strides]
     discount_c_ts = [pow(discount_checkin, k) for k in strides]
 
     stride_compMDPs = [compMDPs[k] for k in strides]
 
-    policy_layers, value_layers = linearProgrammingSolveMultiLayer(stride_compMDPs, discount_ts)
+    policy_layers, value_layers = linearProgrammingSolveMultiLayer(stride_compMDPs, discount_ts, None, is_negative)
 
     if checkinCostFunction is None:
         stride_compMDPs_greedy = [greedyCompMDPs[k] for k in strides]
@@ -1632,7 +1632,7 @@ def createRecurringChain(discount, discount_checkin, compMDPs, greedyCompMDPs, s
     else:
         values = value_layers[0]
         eval_normal = checkinCostFunction(strides, discount_checkin)
-        sched = Schedule(strides=strides, pi_exec_data=(values, eval_normal), pi_checkin_data=None, pi_mid_data=None, opt_policies=[], opt_values=[], is_multi_layer=True)
+        sched = Schedule(strides=strides, pi_exec_data=(values, eval_normal), pi_checkin_data=None, pi_mid_data=None, opt_policies=policy_layers, opt_values=value_layers, is_multi_layer=True)
 
     return sched
 
@@ -1647,20 +1647,20 @@ def createRecurring(discount, compMDPs, k):
     discount_t = pow(discount, k)
     compMDP = compMDPs[k]
 
-    policy, values = linearProgrammingSolve(compMDP, discount_t)
+    policy, values, _ = linearProgrammingSolve(compMDP, discount_t)
     return Schedule(strides = [], recc_strides = [k], pi_exec_data=(values, None), pi_checkin_data=None, pi_mid_data=None, opt_policies=[policy], opt_values=[values])
 
-def createChainTail(discount, discount_checkin, compMDPs, greedyCompMDPs, k, midpoints, checkinCostFunction):
+def createChainTail(discount, discount_checkin, compMDPs, greedyCompMDPs, k, midpoints, checkinCostFunction, is_negative=False):
     discount_t = pow(discount, k)
     discount_c_t = pow(discount_checkin, k)
     compMDP = compMDPs[k]
 
-    policy, values = linearProgrammingSolve(compMDP, discount_t)
+    policy, values, _ = linearProgrammingSolve(compMDP, discount_t, None, is_negative)
     
     if checkinCostFunction is None:
         greedyMDP = greedyCompMDPs[k]
     
-        policy_greedy, values_greedy = linearProgrammingSolve(greedyMDP, discount_c_t, restricted_action_set=None, is_negative=True) # we know values are negative, LP & simplex method doesn't work with negative decision variables so we flip 
+        policy_greedy, values_greedy, _ = linearProgrammingSolve(greedyMDP, discount_c_t, restricted_action_set=None, is_negative=True) # we know values are negative, LP & simplex method doesn't work with negative decision variables so we flip 
         
         eval_normal = policyEvaluation(greedyMDP, policy, discount_c_t)
         eval_greedy = policyEvaluation(compMDP, policy_greedy, discount_t)

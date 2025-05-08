@@ -133,7 +133,7 @@ def formationMDP(gridSize, correction_inaccuracy, baseline_inaccuracy,
     # IF driving across and along, smear in a rectangle?
         
     _f = plot_next_state_distribution(transitions,1)
-    _f.savefig(f"output/transitions.pdf", bbox_inches='tight')
+    # _f.savefig(f"output/transitions.pdf", bbox_inches='tight')
         
     x_steps = gridSize
     y_steps = gridSize
