@@ -75,7 +75,7 @@ def linearProgrammingSolve(mdp, discount, restricted_action_set = None, is_negat
     print("time to solve the model: "+str(time_elapsed))
 
     # print(lp.solution) 
-    # print(lp.solve_details.status)
+    print(lp.solve_details.status)
 #     print(lp.solution.get_value_dict(v))
 
     values = lp.solution.get_value_dict(v)
